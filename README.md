@@ -28,7 +28,7 @@
 ## Table of Contents
 
 - [Introduction](#introduction)
-- [The Team](#the_team)
+- [The Team](#the-team)
 - [Reasoning](#reasoning)
 
 ## Introduction
