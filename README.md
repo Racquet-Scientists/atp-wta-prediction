@@ -1,8 +1,10 @@
 <h1 align="center"> Racquet Scientists </h1> <br>
 <p align="center">
+  <img alt="ChibiScreaming" title="ChibiScreaming" src="https://media.giphy.com/media/uTY9YvXryUtpaNaDiG/giphy.gif" width="150">
   <a href="https://github.com/Racquet-Scientists">
     <img alt="RacquetScientists" title="RacquetScientists" src="https://i.imgur.com/IQCy2tA.png" width="250">
   </a>
+  <img alt="ChibiScreaming" title="ChibiScreaming" src="https://media.giphy.com/media/uTY9YvXryUtpaNaDiG/giphy.gif" width="150">
 </p>
 
 <p align="center">
@@ -13,6 +15,14 @@
   <a href="https://github.com/Racquet-Scientists">
     <img alt="Download on the App Store" title="App Store" src="http://i.imgur.com/0n2zqHD.png" width="140">
   </a>
+</p>
+
+<p align="center">
+  <img alt="CatsWatching" title="CatsWatching" src="https://media.giphy.com/media/10bHtOYi6DwkiA/giphy.gif" height="170" width="600">
+</p>
+
+<p align="center">
+  <img alt="ProTennis" title="ProTennis" src="https://media.giphy.com/media/l378nQAeexVYyjqs8/giphy.gif" height="250" width="600">
 </p>
 
 ## Table of Contents(Pending...)
