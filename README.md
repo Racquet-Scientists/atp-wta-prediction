@@ -17,14 +17,6 @@
   </a>
 </p>
 
-<p align="center">
-  <img alt="CatsWatching" title="CatsWatching" src="https://media.giphy.com/media/10bHtOYi6DwkiA/giphy.gif" height="170" width="600">
-</p>
-
-<p align="center">
-  <img alt="ProTennis" title="ProTennis" src="https://media.giphy.com/media/l378nQAeexVYyjqs8/giphy.gif" height="250" width="600">
-</p>
-
 ## Table of Contents
 
 - [Introduction](#introduction)
@@ -33,6 +25,14 @@
 
 ## Introduction
 Using our Machine Learning Skills masterfully honed and crafted through the University of Chicago Booth's BUSN 41204 Machine Learning Course, we want to present a predictor of the winners and LOSERS of the upcoming French Open
+
+<p align="center">
+  <img alt="CatsWatching" title="CatsWatching" src="https://media.giphy.com/media/10bHtOYi6DwkiA/giphy.gif" height="170" width="600">
+</p>
+
+<p align="center">
+  <img alt="ProTennis" title="ProTennis" src="https://media.giphy.com/media/l378nQAeexVYyjqs8/giphy.gif" height="250" width="600">
+</p>
 
 ## The Team
 ![Roster1](images/Roster1.png)
