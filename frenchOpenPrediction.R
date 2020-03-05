@@ -11,7 +11,7 @@ lapply(PackageList,require,character.only=TRUE) #array function
 # Set Seed
 set.seed(6992) 
 
-#### SETUP #####
+#### SETUP ######
 ################
 # Read Data
 
