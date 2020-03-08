@@ -80,7 +80,19 @@ y_hat_L = list() # list of predictions calculated by each model
 #### Logistic Regression #####
 ##############################
 # Run LASSO to evaluate variable selection
+x = model.matrix(Outcome~.,train_set)
+y = tarin_set$Otucome
+lasso_fit = cv.glmnet(x,y,alpha=1,family="binomial",type.measure="mse")
 # Evaluate LASSO with min lambda and lambda 1 standard error
+# Visual representation
+par(mfrow=c(1,1))
+plot(lasso_fit)
+lambda_min = lasso_fit$lambda.min
+lambda_1se = lasso_fit$lambda.1se
+log(lambda_min)
+coef(lasso_fit,s=lambda_min)
+log(lambda_1se)
+coef(lasso_fit,s=lambda_1se)
 
 # Run GLM & Inspect
 # change names for variables (x's and y) and data set used
@@ -99,10 +111,10 @@ y_hat_L$LR[p_hat_lr < threshold] = 0
 #############################
 # Normalize data (or better yet standardized with mean = 0 and sd = 1)
 # x_standardized = scale(x_not_standardized)
-# Run KNN using CV or maybe Caret internal CV to find optimal K
+
 # Choose values for n with "from" and "to"
 from = 2
-to = 30
+to = 20
 n = to - from + 1
 kk = seq(from, to,((to - from)/(n - 1)))
 p_hat_L$kNN = matrix(0.0,nrow = nrow(data_set), ncol = n)
@@ -126,7 +138,6 @@ for(i in kk) {
 #### Classification Tree #####
 ##############################
 # Build Complex Tree
-# control=rpart.control(minsplit = 5,cp=0.00025,xval=10))
 tree_fit = rpart(y ~ x, data = train,
                  method = "class",
                  control=rpart.control(
@@ -141,16 +152,16 @@ index_cp_min = which.min(tree_fit$cptable[,"xerror"])
 val_h = tree_fit$cptable[index_cp_min, "xerror"] + tree_fit$cptable[index_cp_min, "xstd"]
 index_cp_std = Position(function(x) x < val_h, tree_fit$cptable[, "xerror"])
 cp_std = tree_fit$cptable[index_cp_std,"CP"]
-# cross-validation results - use for report
-#par(mfrow=c(1,1))
-#plotcp(tree_fit)
+# cross-validation results
+par(mfrow=c(1,1))
+plotcp(tree_fit)
 # Best cp considering statistical significance level
 cp_best = cp_std
 # Pruning tree
 tree_fit = prune(tree_fit,cp_best)
-# visualizing model - for report
-#par(mfrow=c(1,1))
-#rpart.plot(tree_fit, main="Pruned Regression Tree")
+# visualizing model
+par(mfrow=c(1,1))
+rpart.plot(tree_fit, main="Pruned CART")
 
 # Store probabilities
 p_hat = predict(object = tree_fit, newdata = validation, type = "prob")
@@ -220,19 +231,6 @@ for(i in 1:nrow(setboost)) {
   y_hat_L$Boost[p_hat < threshold, i] = 0
 }
 
-#### Aggreggate Methods  #####
-##############################
-# Probably out of scope; 
-# we would have to use all models considered for the aggreggate method to get the predictions
-# Use Average & Majority Votes
-# We could average all probabilities, and get outcome by applying threshold
-# How would we get the probability using majority vote? Averaging probabilities for those in favor of the outcome?
-
-# Store probabilities
-
-# Store predictions (using threshold on probabilities)
-
-
 ####   Model Evaluation  #####
 ##############################
 # Calculate Deviance for all models (using probabilities and predictions)
@@ -286,8 +284,19 @@ table(predictions = y_hat_L$RF[,i], actual = y)
 i = 1 # choose best model
 table(predictions = y_hat_L$Boosting[,i], actual = y)
 
-# Aggregate method
+#### Aggreggate Methods?#####
+##############################
+# Probably out of scope; I'd rather not implement this
+# We could use the best of each type of model
+# We could average all probabilities, and get outcome by applying threshold
+# How would we get the probability using majority vote? Averaging probabilities for those in favor of the outcome?
+# Store probabilities
+# Store predictions (using threshold on probabilities)
+# Calculate deviance for aggreggate method?
+# We would have to use ALL the best models to predict tournament results
 
+####     Final Model     #####
+##############################
 # See which model is best (minimum deviance)
 which.min(all_losses)
 
