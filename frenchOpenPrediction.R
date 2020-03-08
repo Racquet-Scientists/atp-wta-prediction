@@ -28,6 +28,29 @@ load.Rdata(filename="Results.Rdata", objname = "tennis_data")
            
 # Change variables to factors / numerical values where applicable
 summary(tennis_data)
+# Factors
+tennis_data$Tournament = as.factor(tennis_data$Tournament)
+tennis_data$Year = as.factor(tennis_data$Year)
+tennis_data$Court = as.factor(tennis_data$Court)
+tennis_data$Surface = as.factor(tennis_data$Surface)
+tennis_data$Round = as.factor(tennis_data$Round)
+tennis_data$`Best of` = as.factor(tennis_data$`Best of`)
+tennis_data$Player1 = as.factor(tennis_data$Player1)
+tennis_data$Player2 = as.factor(tennis_data$Player2)
+# Numeric
+tennis_data$P1Rank = as.numeric(tennis_data$P1Rank)
+na_index = is.na(tennis_data$P1Rank)
+tennis_data$P1Rank[na_index] = max(tennis_data$P1Rank, na.rm=TRUE) + 1
+tennis_data$P2Rank = as.numeric(tennis_data$P2Rank)
+na_index = is.na(tennis_data$P2Rank)
+tennis_data$P2Rank[na_index] = max(tennis_data$P2Rank, na.rm=TRUE) + 1
+tennis_data$P1Pts = as.numeric(tennis_data$P1Pts)
+na_index = is.na(tennis_data$P1Pts)
+tennis_data$P1Pts[na_index] = 0
+tennis_data$P2Pts = as.numeric(tennis_data$P2Pts)
+na_index = is.na(tennis_data$P2Pts)
+tennis_data$P2Pts[na_index] = 0
+# All other values are already numeric
 
 # Partition Data to Train/Test/Validation
 # Use 60% for Train (to be used for models)
