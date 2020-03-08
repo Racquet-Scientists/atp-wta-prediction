@@ -68,6 +68,9 @@ train_set = train_validation[train_index,]
 validation_set = train_validation[-train_index,]
 
 # Create data frames to be used (if not in data frame yet)
+train_set = as.data.frame(train_set)
+validation_set = as.data.frame(validation_set)
+test_set = as.data.frame(test_set)
 
 # Use threshold = 0.5 for all models
 threshold = 0.5
