@@ -25,13 +25,22 @@ set.seed(6992)
 #############################
 # Data is located in Results.Rdata
 
-# Cleanse Data (Rename Columns/Drop Columns e.t.c.)
-# Change variables to factors / numerical values
+# Change variables to factors / numerical values where applicable
 
 # Partition Data to Train/Test/Validation
 # Use 60% for Train (to be used for models)
 # Use 20% for Validation (to evaluate models with Deviance loss)
 # Use 20% for Test (once model is selected, report Accuracy with Test set)
+n = 0.8
+sample_size = floor(n*nrow(data))
+train_validation_index = sample(seq_len(nrow(data)),size = sample_size)
+train_validation = data[train_validation_index,]
+test_set = data[-train_validation_index,]
+n = 0.75
+sample_size = floor(n*nrow(data))
+train_index = sample(seq_len(nrow(train_validation)),size = sample_size)
+train_set = train_validation[train_index,]
+validation_set = train_validation[-train_index,]
 
 # Create data frames to be used (if not in data frame yet)
 
