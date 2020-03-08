@@ -2,11 +2,11 @@
 #####  PACKAGE SETUP     #####
 ##############################
 #List the packages we need, install if missing, then load all of them
-PackageList =c('tidyverse','tree','rpart','rpart.plot','randomForest','gbm','knn','glmnet')
+PackageList =c('tidyverse','tree','rpart','rpart.plot','randomForest','gbm','kknn','glmnet', 'miceadds')
 NewPackages=PackageList[!(PackageList %in%
                             installed.packages()[,"Package"])]
 if(length(NewPackages)) install.packages(NewPackages)
-lapply(PackageList,require,character.only=TRUE) #array function
+lapply(PackageList,require,character.only=TRUE)
 
 ####     Functions     ######
 #############################
@@ -24,20 +24,22 @@ set.seed(6992)
 ####      SETUP        ######
 #############################
 # Data is located in Results.Rdata
-
+load.Rdata(filename="Results.Rdata", objname = "tennis_data") 
+           
 # Change variables to factors / numerical values where applicable
+summary(tennis_data)
 
 # Partition Data to Train/Test/Validation
 # Use 60% for Train (to be used for models)
 # Use 20% for Validation (to evaluate models with Deviance loss)
 # Use 20% for Test (once model is selected, report Accuracy with Test set)
 n = 0.8
-sample_size = floor(n*nrow(data))
-train_validation_index = sample(seq_len(nrow(data)),size = sample_size)
-train_validation = data[train_validation_index,]
-test_set = data[-train_validation_index,]
+sample_size = floor(n*nrow(tennis_data))
+train_validation_index = sample(seq_len(nrow(tennis_data)),size = sample_size)
+train_validation = tennis_data[train_validation_index,]
+test_set = tennis_data[-train_validation_index,]
 n = 0.75
-sample_size = floor(n*nrow(data))
+sample_size = floor(n*nrow(train_validation))
 train_index = sample(seq_len(nrow(train_validation)),size = sample_size)
 train_set = train_validation[train_index,]
 validation_set = train_validation[-train_index,]
