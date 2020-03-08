@@ -132,8 +132,8 @@ mtryv = c(p,sqrt(p)) #number of variables
 ntreev = c(50,100,250,500) #number of trees
 setrf = expand.grid(mtryv,ntreev) 
 colnames(setrf)=c("mtry","ntree") 
-p_hat_L$rf = matrix(0.0,nrow = nrow(validation), ncol = nrow(setrf))
-y_hat_L$rf = matrix(0.0,nrow = nrow(validation), ncol = nrow(setrf))
+p_hat_L$RF = matrix(0.0,nrow = nrow(validation), ncol = nrow(setrf))
+y_hat_L$RF = matrix(0.0,nrow = nrow(validation), ncol = nrow(setrf))
 
 for(i in 1:nrow(setrf)) {
   cat("on randomForest fit ",i,", mtry=",setrf[i,1],", B=",setrf[i,2],"\n")
@@ -172,7 +172,7 @@ for(i in 1:nrow(setboost)) {
                n.trees=setboost[i,2], 
                interaction.depth=setboost[i,1], 
                shrinkage=setboost[i,3])
-  p_hat = predict(fboost, newdata=test_set,n.trees=setboost[i,2], type="response")
+  p_hat = predict(fboost, newdata=validation,n.trees=setboost[i,2], type="response")
 
 # Store probabilities - all models
   p_hat_L$Boost[,i] = p_hat
