@@ -37,6 +37,7 @@ tennis_data$Round = as.factor(tennis_data$Round)
 tennis_data$`Best of` = as.factor(tennis_data$`Best of`)
 tennis_data$Player1 = as.factor(tennis_data$Player1)
 tennis_data$Player2 = as.factor(tennis_data$Player2)
+tennis_data$Outcome = as.factor(tennis_data$Outcome)
 # Numeric
 tennis_data$P1Rank = as.numeric(tennis_data$P1Rank)
 na_index = is.na(tennis_data$P1Rank)
@@ -171,7 +172,7 @@ for(i in kk) {
                 test=validation_set_normalized,
                 k=i,kernel = "rectangular")
 # Store probabilities
-  phat = kk_fit$fitted.values
+  phat = kk_fit$prob[,2]
   p_hat_L$kNN[,i-1] = phat
 # Store predictions (based on probability and threshold value)
   y_hat_L$kNN[,i-1] = phat
@@ -209,44 +210,45 @@ rpart.plot(tree_fit, main="Pruned CART")
 
 # Store probabilities
 p_hat = predict(object = tree_fit, newdata = validation_set, type = "prob")
-p_hat_L$CART = p_hat
+p_hat_L$CART = p_hat[,2]
 
 # Store predictions (based on probability and threshold value)
-y_hat_L$CART = phat
-y_hat_L$CART[phat >= threshold] = 1
-y_hat_L$CART[phat < threshold] = 0
+y_hat_L$CART = p_hat[,2]
+y_hat_L$CART[p_hat[,2] >= threshold] = 1
+y_hat_L$CART[p_hat[,2] < threshold] = 0
 
 #### Random Forest #####
 ########################
 # Build RF with different paramter values
-p = dim(data_set)[2]-1
+p = dim(train_set)[2]-1 # We subtract one to account for Outcome
 mtryv = c(p,sqrt(p)) #number of variables
 ntreev = c(50,100,250,500) #number of trees
 setrf = expand.grid(mtryv,ntreev) 
 colnames(setrf)=c("mtry","ntree") 
-p_hat_L$RF = matrix(0.0,nrow = nrow(validation), ncol = nrow(setrf))
-y_hat_L$RF = matrix(0.0,nrow = nrow(validation), ncol = nrow(setrf))
+p_hat_L$RF = matrix(0.0,nrow = nrow(validation_set), ncol = nrow(setrf))
+y_hat_L$RF = matrix(0.0,nrow = nrow(validation_set), ncol = nrow(setrf))
 
 for(i in 1:nrow(setrf)) {
   cat("on randomForest fit ",i,", mtry=",setrf[i,1],", B=",setrf[i,2],"\n")
-  fit_rf = randomForest(y ~ x,
-                        data=train,
+  fit_rf = randomForest(Outcome ~ .,
+                        data=train_set,
                         mtry=setrf[i,1],
                         ntree=setrf[i,2]) 
-  p_hat = predict(fit_rf,validation,type="prob")
+  p_hat = predict(fit_rf,validation_set,type="prob")
 
 # Store probabilities - all models
-  p_hat_L$RF[,i] = p_hat
+  p_hat_L$RF[,i] = p_hat[,2]
 
 # Store predictions (based on probability and threshold value) - all models
-  y_hat_L$RF[,i] = p_hat
-  y_hat_L$RF[p_hat >= threshold, i] = 1
-  y_hat_L$RF[p_hat < threshold, i] = 0
+  y_hat_L$RF[,i] = p_hat[,2]
+  y_hat_L$RF[p_hat[,2] >= threshold, i] = 1
+  y_hat_L$RF[p_hat[,2] < threshold, i] = 0
 }
   
 ####    Boosting   #####
 ########################
 # Build Boosting tree with different paramter values
+# Change outcome to numerical
 idv = c(2,4) #Depth
 ntv = c(1000,5000) #Number of trees
 shv = c(0.1,0.01) #Shrinking
