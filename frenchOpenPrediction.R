@@ -182,7 +182,7 @@ for(i in kk) {
 #### Classification Tree #####
 ##############################
 # Build Complex Tree
-tree_fit = rpart(y ~ x, data = train,
+tree_fit = rpart(Outcome ~ ., data = train_set,
                  method = "class",
                  control=rpart.control(
                    minsplit = 5,
@@ -208,13 +208,13 @@ par(mfrow=c(1,1))
 rpart.plot(tree_fit, main="Pruned CART")
 
 # Store probabilities
-p_hat = predict(object = tree_fit, newdata = validation, type = "prob")
+p_hat = predict(object = tree_fit, newdata = validation_set, type = "prob")
 p_hat_L$CART = p_hat
 
 # Store predictions (based on probability and threshold value)
 y_hat_L$CART = phat
-y_hat_L[phat >= threshold] = 1
-y_hat_L[phat < threshold] = 0
+y_hat_L$CART[phat >= threshold] = 1
+y_hat_L$CART[phat < threshold] = 0
 
 #### Random Forest #####
 ########################
