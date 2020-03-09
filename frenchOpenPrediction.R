@@ -100,9 +100,10 @@ coef(lasso_fit,s=lambda_min)
 coef(lasso_fit,s=lambda_1se)
 # Variables showing coefficient values (selected by LASSO):
 # Player1, Player2, P1Pts, P2Pts, Player1Srv1Wp, Player1GamesWp, Player1MatchesWp, Player1SetWp, Player2Srv1Wp, Player2GamesWp, Player2MatchesWp, Player2SetWp
-# return output to the terminal 
-sink()
+
 # return to default output
+sink()
+closeAllConnections()
 options(max.print= 99999, width = 80) # Back to defaults
 
 # Feature selection:
@@ -112,7 +113,18 @@ options(max.print= 99999, width = 80) # Back to defaults
 # Player2Srv1Wp, Player2GamesWp, Player2MatchesWp, Player2SetWp
 # + Outcome
 # Redefining data frames with selected variables
-
+train_set = as.data.frame(train_set %>%
+                       select(Outcome,Player1,Player2,P1Pts,P2Pts,
+                              Player1Srv1Wp,Player1GamesWp,Player1MatchesWp,Player1SetWp,
+                              Player2Srv1Wp,Player2GamesWp,Player2MatchesWp,Player2SetWp))
+validation_set = as.data.frame(validation_set %>%
+                                 select(Outcome,Player1,Player2,P1Pts,P2Pts,
+                                        Player1Srv1Wp,Player1GamesWp,Player1MatchesWp,Player1SetWp,
+                                        Player2Srv1Wp,Player2GamesWp,Player2MatchesWp,Player2SetWp))
+test_set = as.data.frame(test_set %>%
+                           select(Outcome,Player1,Player2,P1Pts,P2Pts,
+                                  Player1Srv1Wp,Player1GamesWp,Player1MatchesWp,Player1SetWp,
+                                  Player2Srv1Wp,Player2GamesWp,Player2MatchesWp,Player2SetWp))
 
 # Run GLM & Inspect
 # change names for variables (x's and y) and data set used
