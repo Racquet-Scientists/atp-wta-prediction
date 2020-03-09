@@ -77,7 +77,7 @@ threshold = 0.5
 p_hat_L = list() # list of probabilities calculated by each model; to be used for deviance calculation
 y_hat_L = list() # list of predictions calculated by each model
 
-#### Logistic Regression #####
+####  Feature Selection  #####
 ##############################
 # Run LASSO to evaluate variable selection
 x = model.matrix(Outcome~.,train_set)
@@ -114,22 +114,24 @@ options(max.print= 99999, width = 80) # Back to defaults
 # + Outcome
 # Redefining data frames with selected variables
 train_set = as.data.frame(train_set %>%
-                       select(Outcome,Player1,Player2,P1Pts,P2Pts,
+                       select(Outcome,P1Pts,P2Pts, #Player1,Player2,
                               Player1Srv1Wp,Player1GamesWp,Player1MatchesWp,Player1SetWp,
                               Player2Srv1Wp,Player2GamesWp,Player2MatchesWp,Player2SetWp))
 validation_set = as.data.frame(validation_set %>%
-                                 select(Outcome,Player1,Player2,P1Pts,P2Pts,
+                                 select(Outcome,P1Pts,P2Pts, #Player1,Player2,
                                         Player1Srv1Wp,Player1GamesWp,Player1MatchesWp,Player1SetWp,
                                         Player2Srv1Wp,Player2GamesWp,Player2MatchesWp,Player2SetWp))
 test_set = as.data.frame(test_set %>%
-                           select(Outcome,Player1,Player2,P1Pts,P2Pts,
+                           select(Outcome,P1Pts,P2Pts, #Player1,Player2,
                                   Player1Srv1Wp,Player1GamesWp,Player1MatchesWp,Player1SetWp,
                                   Player2Srv1Wp,Player2GamesWp,Player2MatchesWp,Player2SetWp))
 
+#### Logistic Regression #####
+##############################
 # Run GLM & Inspect
 # change names for variables (x's and y) and data set used
-lr_fit = glm(y~x, train, family=binomial(link = "logit"))
-p_hat_lr = predict(lr_fit, validation, type="response")
+lr_fit = glm(Outcome~., train_set, family=binomial(link = "logit"))
+p_hat_lr = predict(lr_fit, validation_set, type="response")
 
 # Store probabilities
 p_hat_L$LR = matrix(p_hat_lr,ncol = 1)
