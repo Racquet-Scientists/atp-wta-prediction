@@ -81,7 +81,7 @@ y_hat_L = list() # list of predictions calculated by each model
 ##############################
 # Run LASSO to evaluate variable selection
 x = model.matrix(Outcome~.,train_set)
-y = tarin_set$Otucome
+y = train_set$Outcome
 lasso_fit = cv.glmnet(x,y,alpha=1,family="binomial",type.measure="mse")
 # Evaluate LASSO with min lambda and lambda 1 standard error
 # Visual representation
@@ -90,9 +90,29 @@ plot(lasso_fit)
 lambda_min = lasso_fit$lambda.min
 lambda_1se = lasso_fit$lambda.1se
 log(lambda_min)
-coef(lasso_fit,s=lambda_min)
 log(lambda_1se)
+# Redirecting output to file (too large to see on terminal)
+options(max.print= 1000000, width = 1000)
+sink("variable_selection", append=FALSE, split=FALSE)
+coef(lasso_fit,s=lambda_min)
+# Variables showing coefficient values (selected by LASSO):
+# Player1, Player2, P1Pts, P2Pts, Player1Srv1Wp, Player1Srv2Wp, Player1GamesWp, Player1MatchesWp, Player1SetWp, Player2Srv1p, Player2Srv1Wp, Player2GamesWp, Player2MatchesWp, Player2SetWp
 coef(lasso_fit,s=lambda_1se)
+# Variables showing coefficient values (selected by LASSO):
+# Player1, Player2, P1Pts, P2Pts, Player1Srv1Wp, Player1GamesWp, Player1MatchesWp, Player1SetWp, Player2Srv1Wp, Player2GamesWp, Player2MatchesWp, Player2SetWp
+# return output to the terminal 
+sink()
+# return to default output
+options(max.print= 99999, width = 80) # Back to defaults
+
+# Feature selection:
+# Player1, Player2 
+# P1Pts, P2Pts 
+# Player1Srv1Wp, Player1GamesWp, Player1MatchesWp, Player1SetWp
+# Player2Srv1Wp, Player2GamesWp, Player2MatchesWp, Player2SetWp
+# + Outcome
+# Redefining data frames with selected variables
+
 
 # Run GLM & Inspect
 # change names for variables (x's and y) and data set used
