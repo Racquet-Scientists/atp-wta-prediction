@@ -144,29 +144,39 @@ y_hat_L$LR[p_hat_lr < threshold] = 0
 #### K Nearest Neighbor #####
 #############################
 # Normalize data (or better yet standardized with mean = 0 and sd = 1)
-# x_standardized = scale(x_not_standardized)
+varnames = names(train_set)[-1]
+index = names(train_set) %in% varnames
+temp = scale(train_set[, index])
+train_set_normalized = train_set
+train_set_normalized[, index] = temp
+temp = scale(validation_set[, index])
+validation_set_normalized = validation_set
+validation_set_normalized[, index] = temp
+temp = scale(test_set[, index])
+test_set_normalized = test_set
+test_set_normalized[, index] = temp
 
 # Choose values for n with "from" and "to"
 from = 2
 to = 20
 n = to - from + 1
 kk = seq(from, to,((to - from)/(n - 1)))
-p_hat_L$kNN = matrix(0.0,nrow = nrow(data_set), ncol = n)
-y_hat_L$kNN = matrix(0.0,nrow = nrow(data_set), ncol = n)
+p_hat_L$kNN = matrix(0.0,nrow = nrow(validation_set_normalized), ncol = n)
+y_hat_L$kNN = matrix(0.0,nrow = nrow(validation_set_normalized), ncol = n)
 for(i in kk) {
   cat("on k = ",i,"\n")
   # change names for variables (x's and y) and data set used
-  kk_fit = kknn(y~x,
-                train=train,
-                test=validation,
+  kk_fit = kknn(Outcome~.,
+                train=train_set_normalized,
+                test=validation_set_normalized,
                 k=i,kernel = "rectangular")
 # Store probabilities
-  phat = as.numeric(kk_fit$fitted.values)-1
+  phat = kk_fit$fitted.values
   p_hat_L$kNN[,i-1] = phat
 # Store predictions (based on probability and threshold value)
   y_hat_L$kNN[,i-1] = phat
-  y_hat_L[phat >= threshold] = 1
-  y_hat_L[phat < threshold] = 0
+  y_hat_L$kNN[phat >= threshold, i-1] = 1
+  y_hat_L$kNN[phat < threshold, i-1] = 0
 }
 
 #### Classification Tree #####
