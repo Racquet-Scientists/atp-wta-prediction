@@ -247,26 +247,32 @@ for(i in 1:nrow(setrf)) {
   
 ####    Boosting   #####
 ########################
-# Build Boosting tree with different paramter values
 # Change outcome to numerical
+train_set_numerical = train_set
+train_set_numerical$Outcome = as.numeric(train_set$Outcome)-1
+validation_set_numerical = validation_set
+validation_set_numerical$Outcome = as.numeric(validation_set$Outcome)-1
+test_set_numerical = test_set
+test_set_numerical$Outcome = as.numeric(test_set$Outcome)-1
+# Build Boosting tree with different paramter values
 idv = c(2,4) #Depth
 ntv = c(1000,5000) #Number of trees
 shv = c(0.1,0.01) #Shrinking
 setboost = expand.grid(idv,ntv,shv)
 colnames(setboost) = c("tdepth","ntree","shrink")
-p_hat_L$Boost = matrix(0.0,nrow(validation),nrow(setboost))
-y_hat_L$Boost = matrix(0.0,nrow(validation),nrow(setboost))
+p_hat_L$Boost = matrix(0.0,nrow(validation_set_numerical),nrow(setboost))
+y_hat_L$Boost = matrix(0.0,nrow(validation_set_numerical),nrow(setboost))
 
 for(i in 1:nrow(setboost)) {
   cat("on boosting fit",i,
       ", idv = ",setboost[i,1],
       ", ntv = ",setboost[i,2],
       ", shv = ",setboost[i,3],"\n")
-  fboost = gbm(y~x, data=train, distribution="bernoulli",
+  fboost = gbm(Outcome~., data=train_set_numerical, distribution="bernoulli",
                n.trees=setboost[i,2], 
                interaction.depth=setboost[i,1], 
                shrinkage=setboost[i,3])
-  p_hat = predict(fboost, newdata=validation,n.trees=setboost[i,2], type="response")
+  p_hat = predict(fboost, newdata=validation_set_numerical,n.trees=setboost[i,2], type="response")
 
 # Store probabilities - all models
   p_hat_L$Boost[,i] = p_hat
