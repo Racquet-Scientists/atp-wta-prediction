@@ -138,7 +138,7 @@ p_hat_lr = predict(lr_fit, validation_set, type="response")
 p_hat_L$LR = matrix(p_hat_lr,ncol = 1)
 
 # Store predictions (based on probability and threshold value)
-y_hat_L$LR = p_hat_lr
+y_hat_L$LR = matrix(p_hat_lr,ncol = 1)
 y_hat_L$LR[p_hat_lr >= threshold] = 1
 y_hat_L$LR[p_hat_lr < threshold] = 0
 
@@ -210,10 +210,10 @@ rpart.plot(tree_fit, main="Pruned CART")
 
 # Store probabilities
 p_hat = predict(object = tree_fit, newdata = validation_set, type = "prob")
-p_hat_L$CART = p_hat[,2]
+p_hat_L$CART = matrix(p_hat[,2],ncol = 1)
 
 # Store predictions (based on probability and threshold value)
-y_hat_L$CART = p_hat[,2]
+y_hat_L$CART = matrix(p_hat[,2],ncol = 1)
 y_hat_L$CART[p_hat[,2] >= threshold] = 1
 y_hat_L$CART[p_hat[,2] < threshold] = 0
 
@@ -289,7 +289,7 @@ for(i in 1:nrow(setboost)) {
 loss_L = list()
 nmethod = length(p_hat_L) 
 # Set y to outcomes in data set
-y = as.numeric(validation$y)-1 # modify to match data set and variable name
+y = as.numeric(validation_set$Outcome)-1
 for(i in 1:nmethod) {
   # Run for all methods
   nrun = ncol(p_hat_L[[i]])
@@ -333,8 +333,8 @@ i = 1 # choose best model
 table(predictions = y_hat_L$RF[,i], actual = y)
 
 # Boosting
-i = 1 # choose best model
-table(predictions = y_hat_L$Boosting[,i], actual = y)
+i = 6 # choose best model
+table(predictions = y_hat_L$Boost[,i], actual = y)
 
 #### Aggreggate Methods?#####
 ##############################
