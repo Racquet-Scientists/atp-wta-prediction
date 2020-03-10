@@ -272,7 +272,11 @@ rf_test = randomForest(Outcome~.,
                        maxnodes=40, #maximum number of terminal nodes (optional)
                        importance=TRUE, #calculate variable importance measure (optional)
 )
-varImpPlot(rf_test, sort = TRUE, 15)
+num_of_variables = 10
+if (all_variables) {
+  num_of_variables = 15
+}
+varImpPlot(rf_test, sort = TRUE, num_of_variables)
 # Build RF with different paramter values
 p = dim(train_set)[2]-1 # We subtract one to account for Outcome
 mtryv = c(p,sqrt(p)) #number of variables
