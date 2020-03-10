@@ -123,7 +123,7 @@ if (feature_selection) {
 # Player2Srv1Wp, Player2GamesWp, Player2MatchesWp, Player2SetWp
 # + Outcome
 # Redefining data frames with selected variables
-all_variables = TRUE
+all_variables = FALSE
 if (all_variables) {
   train_set = as.data.frame(train_set %>%
                               select(Outcome,Year,Court,Surface,Round,BestOf,P1Rank,P2Rank,P1Pts,P2Pts,
