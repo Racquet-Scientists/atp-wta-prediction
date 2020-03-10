@@ -76,6 +76,7 @@ validation_set = train_validation[-train_index,]
 train_set = as.data.frame(train_set)
 validation_set = as.data.frame(validation_set)
 test_set = as.data.frame(test_set)
+train_validation_set = as.data.frame(train_validation)
 
 # Use threshold = 0.5 for all models
 threshold = 0.5
@@ -130,6 +131,10 @@ test_set = as.data.frame(test_set %>%
                            select(Outcome,P1Pts,P2Pts, #Player1,Player2,
                                   Player1Srv1Wp,Player1GamesWp,Player1MatchesWp,Player1SetWp,
                                   Player2Srv1Wp,Player2GamesWp,Player2MatchesWp,Player2SetWp))
+train_validation_set = as.data.frame(train_validation_set %>%
+                                       select(Outcome,P1Pts,P2Pts, #Player1,Player2,
+                                              Player1Srv1Wp,Player1GamesWp,Player1MatchesWp,Player1SetWp,
+                                              Player2Srv1Wp,Player2GamesWp,Player2MatchesWp,Player2SetWp))
 
 #### Logistic Regression #####
 ##############################
@@ -258,6 +263,8 @@ validation_set_numerical = validation_set
 validation_set_numerical$Outcome = as.numeric(validation_set$Outcome)-1
 test_set_numerical = test_set
 test_set_numerical$Outcome = as.numeric(test_set$Outcome)-1
+train_validation_set_numerical = train_validation_set
+train_validation_set_numerical$Outcome = as.numeric(train_validation_set$Outcome)-1
 # Build Boosting tree with different paramter values
 idv = c(2,4) #Depth
 ntv = c(1000,5000) #Number of trees
@@ -375,10 +382,44 @@ print(accuracy_Boost)
 ##############################
 # See which model is best (minimum deviance)
 which.min(all_losses)
+# Result: Boosting #6 (Logistic Regression is very close & has a better accuracy with validation set)
+idv = c(2,4) #Depth
+ntv = c(1000,5000) #Number of trees
+shv = c(0.1,0.01) #Shrinking
+setboost = expand.grid(idv,ntv,shv)
+colnames(setboost) = c("tdepth","ntree","shrink")
 
 # Retrain best model with train + validation
+# Boosting
+i = 6
+fboost = gbm(Outcome~., data=train_validation_set_numerical, distribution="bernoulli",
+             n.trees=setboost[i,2], 
+             interaction.depth=setboost[i,1], 
+             shrinkage=setboost[i,3])
+p_hat = predict(fboost, newdata=test_set_numerical,n.trees=setboost[i,2], type="response")
+p_hat_boost = p_hat
+y_hat_boost = p_hat
+y_hat_boost[p_hat >= threshold] = 1
+y_hat_boost[p_hat < threshold] = 0
+# Logistic Regression
+lr_fit = glm(Outcome~., train_validation_set, family=binomial(link = "logit"))
+p_hat_lr = predict(lr_fit, test_set, type="response")
+y_hat_lr = matrix(p_hat_lr,ncol = 1)
+y_hat_lr[p_hat_lr >= threshold] = 1
+y_hat_lr[p_hat_lr < threshold] = 0
 
 # Use test set to give a final accuracy description of the model
+y = as.numeric(test_set$Outcome)-1
+cm = cm = table(predictions = y_hat_boost, actual = y)
+accuracy_Boost = accuracy_from_cm(cm)
+print("Boosting:")
+print(cm)
+print(accuracy_Boost)
+cm = table(predictions = y_hat_lr, actual = y)
+accuracy_lr = accuracy_from_cm(cm)
+print("Logistic Regression:")
+print(cm)
+print(accuracy_lr)
 
 
 #### Torunament Prediction #####
