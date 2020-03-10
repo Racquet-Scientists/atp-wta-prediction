@@ -29,7 +29,10 @@ set.seed(6992)
 #############################
 # Data is located in Results.Rdata
 load.Rdata(filename="Results.Rdata", objname = "tennis_data") 
-           
+feature_selection = FALSE
+all_variables = FALSE
+variable_importance = FALSE
+
 # Change variables to factors / numerical values where applicable
 summary(tennis_data)
 names(tennis_data)[6] = "BestOf"
@@ -87,7 +90,6 @@ y_hat_L = list() # list of predictions calculated by each model
 ####  Feature Selection  #####
 ##############################
 # Run LASSO to evaluate variable selection
-feature_selection = FALSE
 if (feature_selection) {
   x = model.matrix(Outcome~.,train_set)
   y = train_set$Outcome
@@ -123,7 +125,6 @@ if (feature_selection) {
 # Player2Srv1Wp, Player2GamesWp, Player2MatchesWp, Player2SetWp
 # + Outcome
 # Redefining data frames with selected variables
-all_variables = FALSE
 if (all_variables) {
   train_set = as.data.frame(train_set %>%
                               select(Outcome,Year,Court,Surface,Round,BestOf,P1Rank,P2Rank,P1Pts,P2Pts,
@@ -264,19 +265,21 @@ y_hat_L$CART[p_hat[,2] < threshold] = 0
 #### Random Forest #####
 ########################
 # Test variable importance
-rf_test = randomForest(Outcome~.,
-                       data=train_set, #data set
-                       mtry=sqrt(dim(train_set)[2]-1), #number of variables to sample
-                       ntree=500, #number of trees to grow
-                       nodesize=1,#minimum node size on trees (optional) 
-                       maxnodes=40, #maximum number of terminal nodes (optional)
-                       importance=TRUE, #calculate variable importance measure (optional)
-)
-num_of_variables = 10
-if (all_variables) {
-  num_of_variables = 15
+if (variable_importance) {
+  rf_test = randomForest(Outcome~.,
+                         data=train_set, #data set
+                         mtry=sqrt(dim(train_set)[2]-1), #number of variables to sample
+                         ntree=500, #number of trees to grow
+                         nodesize=1,#minimum node size on trees (optional) 
+                         maxnodes=40, #maximum number of terminal nodes (optional)
+                         importance=TRUE, #calculate variable importance measure (optional)
+  )
+  num_of_variables = 10
+  if (all_variables) {
+    num_of_variables = 15
+  }
+  varImpPlot(rf_test, sort = TRUE, num_of_variables)
 }
-varImpPlot(rf_test, sort = TRUE, num_of_variables)
 # Build RF with different paramter values
 p = dim(train_set)[2]-1 # We subtract one to account for Outcome
 mtryv = c(p,sqrt(p)) #number of variables
