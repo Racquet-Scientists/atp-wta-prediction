@@ -81,6 +81,7 @@ train_set = as.data.frame(train_set)
 validation_set = as.data.frame(validation_set)
 test_set = as.data.frame(test_set)
 train_validation_set = as.data.frame(train_validation)
+tennis_data_set = as.data.frame(tennis_data)
 
 # Use threshold = 0.5 for all models
 threshold = 0.5
@@ -150,6 +151,13 @@ if (all_variables) {
                                                 Player1GamesWp,Player1MatchesWp,Player1SetWp,
                                                 Player2ACp,Player2DFp,Player2Srv1p,Player2Srv1Wp,Player2Srv2Wp,Player2Srv1ReWp,Player2Srv2ReWp,
                                                 Player2GamesWp,Player2MatchesWp,Player2SetWp,))
+  tennis_data_set = as.data.frame(tennis_data_set %>%
+                                    select(Outcome,Year,Court,Surface,Round,BestOf,P1Rank,P2Rank,P1Pts,P2Pts,
+                                           Player1ACp,Player1DFp,Player1Srv1p,Player1Srv1Wp,Player1Srv2Wp,Player1Srv1ReWp,Player1Srv2ReWp,
+                                           Player1GamesWp,Player1MatchesWp,Player1SetWp,
+                                           Player2ACp,Player2DFp,Player2Srv1p,Player2Srv1Wp,Player2Srv2Wp,Player2Srv1ReWp,Player2Srv2ReWp,
+                                           Player2GamesWp,Player2MatchesWp,Player2SetWp,))
+                                    
 } else {
   train_set = as.data.frame(train_set %>%
                               select(Outcome,P1Pts,P2Pts,
@@ -167,6 +175,10 @@ if (all_variables) {
                                          select(Outcome,P1Pts,P2Pts, 
                                                 Player1Srv1Wp,Player1GamesWp,Player1MatchesWp,Player1SetWp,
                                                 Player2Srv1Wp,Player2GamesWp,Player2MatchesWp,Player2SetWp))
+  tennis_data_set = as.data.frame(tennis_data_set %>%
+                                    select(Outcome,P1Pts,P2Pts, 
+                                           Player1Srv1Wp,Player1GamesWp,Player1MatchesWp,Player1SetWp,
+                                           Player2Srv1Wp,Player2GamesWp,Player2MatchesWp,Player2SetWp))
 }
 
 #### Logistic Regression #####
@@ -317,6 +329,8 @@ test_set_numerical = test_set
 test_set_numerical$Outcome = as.numeric(test_set$Outcome)-1
 train_validation_set_numerical = train_validation_set
 train_validation_set_numerical$Outcome = as.numeric(train_validation_set$Outcome)-1
+tennis_data_set_numerical = tennis_data_set
+tennis_data_set_numerical$Outcome = as.numeric(tennis_data_set$Outcome)-1
 # Build Boosting tree with different paramter values
 idv = c(2,4) #Depth
 ntv = c(1000,5000) #Number of trees
@@ -503,8 +517,21 @@ print(accuracy_lr)
 #### Torunament Prediction #####
 ################################
 # Retrain best model with entire data set (train + validation + test)
+idv = c(2,4) #Depth
+ntv = c(1000,5000) #Number of trees
+shv = c(0.1,0.01) #Shrinking
+setboost = expand.grid(idv,ntv,shv)
+colnames(setboost) = c("tdepth","ntree","shrink")
+# Retrain best model with train + validation + test (tennis_data)
+# Boosting
+i = 6
+fboost = gbm(Outcome~., data=tennis_data_set_numerical, distribution="bernoulli",
+             n.trees=setboost[i,2], 
+             interaction.depth=setboost[i,1], 
+             shrinkage=setboost[i,3])
+# Logistic Regression
+lr_fit = glm(Outcome~., tennis_data_set, family=binomial(link = "logit"))
 
-# Use tournament data (to be provided by Carly / Sylvia)
-# Predict brackets and create following rounds iteratively
+# Use tournament data & predict brackets, creating following rounds iteratively
 
 # Summarize French Open results with each brakcet winners up to final winner
