@@ -432,14 +432,20 @@ i = 6
 p_hat_best_models$Boost = p_hat_L$Boost[,i]
 p_hat_best_models = as.data.frame(p_hat_best_models)
 nmethod = length(p_hat_best_models) 
+auc_array = NULL
 plot(c(0,1),c(0,1),xlab='FPR',ylab='TPR',main="ROC curve",cex.lab=1,type="n")
 for(i in 1:ncol(p_hat_best_models)) {
   pred = prediction(p_hat_best_models[,i], y)
   perf = performance(pred, measure = "tpr", x.measure = "fpr") 
+  auc = performance(pred, measure = "auc")
+  auc_array = c(auc_array, auc@y.values)
   lines(perf@x.values[[1]], perf@y.values[[1]],col=i)
 }
 abline(0,1,lty=2) 
 legend("topleft",legend=names(p_hat_best_models),col=1:nmethod,lty=rep(1,nmethod), cex = 0.5)
+auc_array = as.data.frame(auc_array)
+names(auc_array) = names(p_hat_best_models)
+print(auc_array)
 
 #### Aggreggate Methods?#####
 ##############################
