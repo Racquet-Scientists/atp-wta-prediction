@@ -120,21 +120,47 @@ options(max.print= 99999, width = 80) # Back to defaults
 # + Outcome
 # Redefining data frames with selected variables
 train_set = as.data.frame(train_set %>%
-                       select(Outcome,P1Pts,P2Pts, #Player1,Player2,
+                       select(Outcome,P1Pts,P2Pts,
                               Player1Srv1Wp,Player1GamesWp,Player1MatchesWp,Player1SetWp,
                               Player2Srv1Wp,Player2GamesWp,Player2MatchesWp,Player2SetWp))
 validation_set = as.data.frame(validation_set %>%
-                                 select(Outcome,P1Pts,P2Pts, #Player1,Player2,
+                                 select(Outcome,P1Pts,P2Pts,
                                         Player1Srv1Wp,Player1GamesWp,Player1MatchesWp,Player1SetWp,
                                         Player2Srv1Wp,Player2GamesWp,Player2MatchesWp,Player2SetWp))
 test_set = as.data.frame(test_set %>%
-                           select(Outcome,P1Pts,P2Pts, #Player1,Player2,
+                           select(Outcome,P1Pts,P2Pts, 
                                   Player1Srv1Wp,Player1GamesWp,Player1MatchesWp,Player1SetWp,
                                   Player2Srv1Wp,Player2GamesWp,Player2MatchesWp,Player2SetWp))
 train_validation_set = as.data.frame(train_validation_set %>%
-                                       select(Outcome,P1Pts,P2Pts, #Player1,Player2,
+                                       select(Outcome,P1Pts,P2Pts, 
                                               Player1Srv1Wp,Player1GamesWp,Player1MatchesWp,Player1SetWp,
                                               Player2Srv1Wp,Player2GamesWp,Player2MatchesWp,Player2SetWp))
+
+# If ALL variables were to be included, instead run:
+# train_set = as.data.frame(train_set %>%
+#                             select(Outcome,Year,Court,Surface,Round,`Best of`,P1Rank,P2Rank,P1Pts,P2Pts,
+#                                    Player1ACp,Player1DFp,Player1Srv1p,Player1Srv1Wp,Player1Srv2Wp,Player1Srv1ReWp,Player1Srv2ReWp,
+#                                    Player1GamesWp,Player1MatchesWp,Player1SetWp, 
+#                                    Player2ACp,Player2DFp,Player2Srv1p,Player2Srv1Wp,Player2Srv2Wp,Player2Srv1ReWp,Player2Srv2ReWp,
+#                                    Player2GamesWp,Player2MatchesWp,Player2SetWp,))
+# validation_set = as.data.frame(validation_set %>%
+#                                  select(Outcome,Year,Court,Surface,Round,`Best of`,P1Rank,P2Rank,P1Pts,P2Pts,
+#                                         Player1ACp,Player1DFp,Player1Srv1p,Player1Srv1Wp,Player1Srv2Wp,Player1Srv1ReWp,Player1Srv2ReWp,
+#                                         Player1GamesWp,Player1MatchesWp,Player1SetWp, 
+#                                         Player2ACp,Player2DFp,Player2Srv1p,Player2Srv1Wp,Player2Srv2Wp,Player2Srv1ReWp,Player2Srv2ReWp,
+#                                         Player2GamesWp,Player2MatchesWp,Player2SetWp,))
+# test_set = as.data.frame(test_set %>%
+#                            select(Outcome,Year,Court,Surface,Round,`Best of`,P1Rank,P2Rank,P1Pts,P2Pts,
+#                                   Player1ACp,Player1DFp,Player1Srv1p,Player1Srv1Wp,Player1Srv2Wp,Player1Srv1ReWp,Player1Srv2ReWp,
+#                                   Player1GamesWp,Player1MatchesWp,Player1SetWp, 
+#                                   Player2ACp,Player2DFp,Player2Srv1p,Player2Srv1Wp,Player2Srv2Wp,Player2Srv1ReWp,Player2Srv2ReWp,
+#                                   Player2GamesWp,Player2MatchesWp,Player2SetWp,))
+# train_validation_set = as.data.frame(train_validation_set %>%
+#                                        select(Outcome,Year,Court,Surface,Round,`Best of`,P1Rank,P2Rank,P1Pts,P2Pts,
+#                                               Player1ACp,Player1DFp,Player1Srv1p,Player1Srv1Wp,Player1Srv2Wp,Player1Srv1ReWp,Player1Srv2ReWp,
+#                                               Player1GamesWp,Player1MatchesWp,Player1SetWp, 
+#                                               Player2ACp,Player2DFp,Player2Srv1p,Player2Srv1Wp,Player2Srv2Wp,Player2Srv1ReWp,Player2Srv2ReWp,
+#                                               Player2GamesWp,Player2MatchesWp,Player2SetWp,))
 
 #### Logistic Regression #####
 ##############################
@@ -420,7 +446,6 @@ accuracy_lr = accuracy_from_cm(cm)
 print("Logistic Regression:")
 print(cm)
 print(accuracy_lr)
-
 
 #### Torunament Prediction #####
 ################################
