@@ -17,6 +17,10 @@ loss_function = function(y,phat,correction=0.00001) {
   py = ifelse(y==1, phat, 1-phat) 
   return(-2*sum(log(py)))
 }
+# Accuracy for a 2x2 confusion matrix
+accuracy_from_cm = function(cm) {
+  return ((cm[1] + cm[4])/sum(cm))
+}
 
 # Set Seed
 set.seed(6992) 
@@ -319,22 +323,42 @@ legend("topright",legend=names(p_hat_L),col=1:nmethod,pch=rep(17,nmethod),cex = 
 
 # Show confusion matrix for best model within each group
 # Logistic Regression
-table(predictions = y_hat_L$LR, actual = y)
+cm = table(predictions = y_hat_L$LR, actual = y)
+accuracy_lr = accuracy_from_cm(cm)
+print("Logistic Regression:")
+print(cm)
+print(accuracy_lr)
 
 # kNN
-i = 1 # choose best model
-table(predictions = y_hat_L$kNN[,i], actual = y)
+i = 19 # choose best model
+cm = table(predictions = y_hat_L$kNN[,i], actual = y)
+accuracy_kNN = accuracy_from_cm(cm)
+print("k Nearest Neighbor:")
+print(cm)
+print(accuracy_kNN)
 
 # CART
-table(predictions = y_hat_L$CART, actual = y)
+cm = table(predictions = y_hat_L$CART, actual = y)
+accuracy_CART = accuracy_from_cm(cm)
+print("CART:")
+print(cm)
+print(accuracy_CART)
 
 # Random Forest
-i = 1 # choose best model
-table(predictions = y_hat_L$RF[,i], actual = y)
+i = 8 # choose best model
+cm = table(predictions = y_hat_L$RF[,i], actual = y)
+accuracy_RF = accuracy_from_cm(cm)
+print("Random Forest:")
+print(cm)
+print(accuracy_RF)
 
 # Boosting
 i = 6 # choose best model
-table(predictions = y_hat_L$Boost[,i], actual = y)
+cm = cm = table(predictions = y_hat_L$Boost[,i], actual = y)
+accuracy_Boost = accuracy_from_cm(cm)
+print("Boosting:")
+print(cm)
+print(accuracy_Boost)
 
 #### Aggreggate Methods?#####
 ##############################
