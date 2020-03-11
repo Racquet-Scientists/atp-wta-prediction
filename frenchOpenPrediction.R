@@ -505,14 +505,26 @@ y_hat_lr[p_hat_lr < threshold] = 0
 y = as.numeric(test_set$Outcome)-1
 cm = cm = table(predictions = y_hat_boost, actual = y)
 accuracy_Boost = accuracy_from_cm(cm)
+# specificity: true positive rate (TPR) = TP / (TP + FN)
+specificity = cm[4] / (cm[4] + cm[3])
+# sensitivity: true negative rate (TNR) = TN / (TN + FP)
+sensitivity = cm[1] / (cm[1] + cm[2])
 print("Boosting:")
 print(cm)
 print(accuracy_Boost)
+print(specificity)
+print(sensitivity)
 cm = table(predictions = y_hat_lr, actual = y)
 accuracy_lr = accuracy_from_cm(cm)
+# specificity: true positive rate (TPR) = TP / (TP + FN)
+specificity = cm[4] / (cm[4] + cm[3])
+# sensitivity: true negative rate (TNR) = TN / (TN + FP)
+sensitivity = cm[1] / (cm[1] + cm[2])
 print("Logistic Regression:")
 print(cm)
 print(accuracy_lr)
+print(specificity)
+print(sensitivity)
 
 #### Torunament Prediction #####
 ################################
