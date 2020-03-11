@@ -2,7 +2,7 @@
 #####  PACKAGE SETUP     #####
 ##############################
 #List the packages we need, install if missing, then load all of them
-PackageList =c('tidyverse','tree','rpart','rpart.plot','randomForest','gbm','kknn','glmnet', 'miceadds')
+PackageList =c('tidyverse','tree','rpart','rpart.plot','randomForest','gbm','kknn','glmnet', 'miceadds','ROCR')
 NewPackages=PackageList[!(PackageList %in%
                             installed.packages()[,"Package"])]
 if(length(NewPackages)) install.packages(NewPackages)
@@ -17,6 +17,10 @@ loss_function = function(y,phat,correction=0.00001) {
   py = ifelse(y==1, phat, 1-phat) 
   return(-2*sum(log(py)))
 }
+# Accuracy for a 2x2 confusion matrix
+accuracy_from_cm = function(cm) {
+  return ((cm[1] + cm[4])/sum(cm))
+}
 
 # Set Seed
 set.seed(6992) 
@@ -25,16 +29,20 @@ set.seed(6992)
 #############################
 # Data is located in Results.Rdata
 load.Rdata(filename="Results.Rdata", objname = "tennis_data") 
-           
+feature_selection = FALSE
+all_variables = FALSE
+variable_importance = FALSE
+
 # Change variables to factors / numerical values where applicable
 summary(tennis_data)
+names(tennis_data)[6] = "BestOf"
 # Factors
 tennis_data$Tournament = as.factor(tennis_data$Tournament)
 tennis_data$Year = as.factor(tennis_data$Year)
 tennis_data$Court = as.factor(tennis_data$Court)
 tennis_data$Surface = as.factor(tennis_data$Surface)
 tennis_data$Round = as.factor(tennis_data$Round)
-tennis_data$`Best of` = as.factor(tennis_data$`Best of`)
+tennis_data$BestOf = as.factor(tennis_data$BestOf)
 tennis_data$Player1 = as.factor(tennis_data$Player1)
 tennis_data$Player2 = as.factor(tennis_data$Player2)
 tennis_data$Outcome = as.factor(tennis_data$Outcome)
@@ -72,6 +80,8 @@ validation_set = train_validation[-train_index,]
 train_set = as.data.frame(train_set)
 validation_set = as.data.frame(validation_set)
 test_set = as.data.frame(test_set)
+train_validation_set = as.data.frame(train_validation)
+tennis_data_set = as.data.frame(tennis_data)
 
 # Use threshold = 0.5 for all models
 threshold = 0.5
@@ -81,31 +91,33 @@ y_hat_L = list() # list of predictions calculated by each model
 ####  Feature Selection  #####
 ##############################
 # Run LASSO to evaluate variable selection
-x = model.matrix(Outcome~.,train_set)
-y = train_set$Outcome
-lasso_fit = cv.glmnet(x,y,alpha=1,family="binomial",type.measure="mse")
-# Evaluate LASSO with min lambda and lambda 1 standard error
-# Visual representation
-par(mfrow=c(1,1))
-plot(lasso_fit)
-lambda_min = lasso_fit$lambda.min
-lambda_1se = lasso_fit$lambda.1se
-log(lambda_min)
-log(lambda_1se)
-# Redirecting output to file (too large to see on terminal)
-options(max.print= 1000000, width = 1000)
-sink("variable_selection", append=FALSE, split=FALSE)
-coef(lasso_fit,s=lambda_min)
-# Variables showing coefficient values (selected by LASSO):
-# Player1, Player2, P1Pts, P2Pts, Player1Srv1Wp, Player1Srv2Wp, Player1GamesWp, Player1MatchesWp, Player1SetWp, Player2Srv1p, Player2Srv1Wp, Player2GamesWp, Player2MatchesWp, Player2SetWp
-coef(lasso_fit,s=lambda_1se)
-# Variables showing coefficient values (selected by LASSO):
-# Player1, Player2, P1Pts, P2Pts, Player1Srv1Wp, Player1GamesWp, Player1MatchesWp, Player1SetWp, Player2Srv1Wp, Player2GamesWp, Player2MatchesWp, Player2SetWp
-
-# return to default output
-sink()
-closeAllConnections()
-options(max.print= 99999, width = 80) # Back to defaults
+if (feature_selection) {
+  x = model.matrix(Outcome~.,train_set)
+  y = train_set$Outcome
+  lasso_fit = cv.glmnet(x,y,alpha=1,family="binomial",type.measure="mse")
+  # Evaluate LASSO with min lambda and lambda 1 standard error
+  # Visual representation
+  par(mfrow=c(1,1))
+  plot(lasso_fit)
+  lambda_min = lasso_fit$lambda.min
+  lambda_1se = lasso_fit$lambda.1se
+  log(lambda_min)
+  log(lambda_1se)
+  # Redirecting output to file (too large to see on terminal)
+  options(max.print= 1000000, width = 1000)
+  sink("variable_selection", append=FALSE, split=FALSE)
+  coef(lasso_fit,s=lambda_min)
+  # Variables showing coefficient values (selected by LASSO):
+  # Player1, Player2, P1Pts, P2Pts, Player1Srv1Wp, Player1Srv2Wp, Player1GamesWp, Player1MatchesWp, Player1SetWp, Player2Srv1p, Player2Srv1Wp, Player2GamesWp, Player2MatchesWp, Player2SetWp
+  coef(lasso_fit,s=lambda_1se)
+  # Variables showing coefficient values (selected by LASSO):
+  # Player1, Player2, P1Pts, P2Pts, Player1Srv1Wp, Player1GamesWp, Player1MatchesWp, Player1SetWp, Player2Srv1Wp, Player2GamesWp, Player2MatchesWp, Player2SetWp
+  
+  # return to default output
+  sink()
+  closeAllConnections()
+  options(max.print= 99999, width = 80) # Back to defaults
+}
 
 # Feature selection:
 # Player1, Player2 
@@ -114,18 +126,60 @@ options(max.print= 99999, width = 80) # Back to defaults
 # Player2Srv1Wp, Player2GamesWp, Player2MatchesWp, Player2SetWp
 # + Outcome
 # Redefining data frames with selected variables
-train_set = as.data.frame(train_set %>%
-                       select(Outcome,P1Pts,P2Pts, #Player1,Player2,
-                              Player1Srv1Wp,Player1GamesWp,Player1MatchesWp,Player1SetWp,
-                              Player2Srv1Wp,Player2GamesWp,Player2MatchesWp,Player2SetWp))
-validation_set = as.data.frame(validation_set %>%
-                                 select(Outcome,P1Pts,P2Pts, #Player1,Player2,
-                                        Player1Srv1Wp,Player1GamesWp,Player1MatchesWp,Player1SetWp,
-                                        Player2Srv1Wp,Player2GamesWp,Player2MatchesWp,Player2SetWp))
-test_set = as.data.frame(test_set %>%
-                           select(Outcome,P1Pts,P2Pts, #Player1,Player2,
-                                  Player1Srv1Wp,Player1GamesWp,Player1MatchesWp,Player1SetWp,
-                                  Player2Srv1Wp,Player2GamesWp,Player2MatchesWp,Player2SetWp))
+if (all_variables) {
+  train_set = as.data.frame(train_set %>%
+                              select(Outcome,Year,Court,Surface,Round,BestOf,P1Rank,P2Rank,P1Pts,P2Pts,
+                                     Player1ACp,Player1DFp,Player1Srv1p,Player1Srv1Wp,Player1Srv2Wp,Player1Srv1ReWp,Player1Srv2ReWp,
+                                     Player1GamesWp,Player1MatchesWp,Player1SetWp,
+                                     Player2ACp,Player2DFp,Player2Srv1p,Player2Srv1Wp,Player2Srv2Wp,Player2Srv1ReWp,Player2Srv2ReWp,
+                                     Player2GamesWp,Player2MatchesWp,Player2SetWp,))
+  validation_set = as.data.frame(validation_set %>%
+                                   select(Outcome,Year,Court,Surface,Round,BestOf,P1Rank,P2Rank,P1Pts,P2Pts,
+                                          Player1ACp,Player1DFp,Player1Srv1p,Player1Srv1Wp,Player1Srv2Wp,Player1Srv1ReWp,Player1Srv2ReWp,
+                                          Player1GamesWp,Player1MatchesWp,Player1SetWp,
+                                          Player2ACp,Player2DFp,Player2Srv1p,Player2Srv1Wp,Player2Srv2Wp,Player2Srv1ReWp,Player2Srv2ReWp,
+                                          Player2GamesWp,Player2MatchesWp,Player2SetWp,))
+  test_set = as.data.frame(test_set %>%
+                             select(Outcome,Year,Court,Surface,Round,BestOf,P1Rank,P2Rank,P1Pts,P2Pts,
+                                    Player1ACp,Player1DFp,Player1Srv1p,Player1Srv1Wp,Player1Srv2Wp,Player1Srv1ReWp,Player1Srv2ReWp,
+                                    Player1GamesWp,Player1MatchesWp,Player1SetWp,
+                                    Player2ACp,Player2DFp,Player2Srv1p,Player2Srv1Wp,Player2Srv2Wp,Player2Srv1ReWp,Player2Srv2ReWp,
+                                    Player2GamesWp,Player2MatchesWp,Player2SetWp,))
+  train_validation_set = as.data.frame(train_validation_set %>%
+                                         select(Outcome,Year,Court,Surface,Round,BestOf,P1Rank,P2Rank,P1Pts,P2Pts,
+                                                Player1ACp,Player1DFp,Player1Srv1p,Player1Srv1Wp,Player1Srv2Wp,Player1Srv1ReWp,Player1Srv2ReWp,
+                                                Player1GamesWp,Player1MatchesWp,Player1SetWp,
+                                                Player2ACp,Player2DFp,Player2Srv1p,Player2Srv1Wp,Player2Srv2Wp,Player2Srv1ReWp,Player2Srv2ReWp,
+                                                Player2GamesWp,Player2MatchesWp,Player2SetWp,))
+  tennis_data_set = as.data.frame(tennis_data_set %>%
+                                    select(Outcome,Year,Court,Surface,Round,BestOf,P1Rank,P2Rank,P1Pts,P2Pts,
+                                           Player1ACp,Player1DFp,Player1Srv1p,Player1Srv1Wp,Player1Srv2Wp,Player1Srv1ReWp,Player1Srv2ReWp,
+                                           Player1GamesWp,Player1MatchesWp,Player1SetWp,
+                                           Player2ACp,Player2DFp,Player2Srv1p,Player2Srv1Wp,Player2Srv2Wp,Player2Srv1ReWp,Player2Srv2ReWp,
+                                           Player2GamesWp,Player2MatchesWp,Player2SetWp,))
+                                    
+} else {
+  train_set = as.data.frame(train_set %>%
+                              select(Outcome,P1Pts,P2Pts,
+                                     Player1Srv1Wp,Player1GamesWp,Player1MatchesWp,Player1SetWp,
+                                     Player2Srv1Wp,Player2GamesWp,Player2MatchesWp,Player2SetWp))
+  validation_set = as.data.frame(validation_set %>%
+                                   select(Outcome,P1Pts,P2Pts,
+                                          Player1Srv1Wp,Player1GamesWp,Player1MatchesWp,Player1SetWp,
+                                          Player2Srv1Wp,Player2GamesWp,Player2MatchesWp,Player2SetWp))
+  test_set = as.data.frame(test_set %>%
+                             select(Outcome,P1Pts,P2Pts, 
+                                    Player1Srv1Wp,Player1GamesWp,Player1MatchesWp,Player1SetWp,
+                                    Player2Srv1Wp,Player2GamesWp,Player2MatchesWp,Player2SetWp))
+  train_validation_set = as.data.frame(train_validation_set %>%
+                                         select(Outcome,P1Pts,P2Pts, 
+                                                Player1Srv1Wp,Player1GamesWp,Player1MatchesWp,Player1SetWp,
+                                                Player2Srv1Wp,Player2GamesWp,Player2MatchesWp,Player2SetWp))
+  tennis_data_set = as.data.frame(tennis_data_set %>%
+                                    select(Outcome,P1Pts,P2Pts, 
+                                           Player1Srv1Wp,Player1GamesWp,Player1MatchesWp,Player1SetWp,
+                                           Player2Srv1Wp,Player2GamesWp,Player2MatchesWp,Player2SetWp))
+}
 
 #### Logistic Regression #####
 ##############################
@@ -146,6 +200,9 @@ y_hat_L$LR[p_hat_lr < threshold] = 0
 #############################
 # Normalize data (or better yet standardized with mean = 0 and sd = 1)
 varnames = names(train_set)[-1]
+if (all_variables) {
+  varnames = varnames[-(1:5)]
+}
 index = names(train_set) %in% varnames
 temp = scale(train_set[, index])
 train_set_normalized = train_set
@@ -219,6 +276,22 @@ y_hat_L$CART[p_hat[,2] < threshold] = 0
 
 #### Random Forest #####
 ########################
+# Test variable importance
+if (variable_importance) {
+  rf_test = randomForest(Outcome~.,
+                         data=train_set, #data set
+                         mtry=sqrt(dim(train_set)[2]-1), #number of variables to sample
+                         ntree=500, #number of trees to grow
+                         nodesize=1,#minimum node size on trees (optional) 
+                         maxnodes=40, #maximum number of terminal nodes (optional)
+                         importance=TRUE, #calculate variable importance measure (optional)
+  )
+  num_of_variables = 10
+  if (all_variables) {
+    num_of_variables = 15
+  }
+  varImpPlot(rf_test, sort = TRUE, num_of_variables)
+}
 # Build RF with different paramter values
 p = dim(train_set)[2]-1 # We subtract one to account for Outcome
 mtryv = c(p,sqrt(p)) #number of variables
@@ -254,6 +327,10 @@ validation_set_numerical = validation_set
 validation_set_numerical$Outcome = as.numeric(validation_set$Outcome)-1
 test_set_numerical = test_set
 test_set_numerical$Outcome = as.numeric(test_set$Outcome)-1
+train_validation_set_numerical = train_validation_set
+train_validation_set_numerical$Outcome = as.numeric(train_validation_set$Outcome)-1
+tennis_data_set_numerical = tennis_data_set
+tennis_data_set_numerical$Outcome = as.numeric(tennis_data_set$Outcome)-1
 # Build Boosting tree with different paramter values
 idv = c(2,4) #Depth
 ntv = c(1000,5000) #Number of trees
@@ -319,22 +396,70 @@ legend("topright",legend=names(p_hat_L),col=1:nmethod,pch=rep(17,nmethod),cex = 
 
 # Show confusion matrix for best model within each group
 # Logistic Regression
-table(predictions = y_hat_L$LR, actual = y)
+cm = table(predictions = y_hat_L$LR, actual = y)
+accuracy_lr = accuracy_from_cm(cm)
+print("Logistic Regression:")
+print(cm)
+print(accuracy_lr)
 
 # kNN
-i = 1 # choose best model
-table(predictions = y_hat_L$kNN[,i], actual = y)
+i = 19 # choose best model
+cm = table(predictions = y_hat_L$kNN[,i], actual = y)
+accuracy_kNN = accuracy_from_cm(cm)
+print("k Nearest Neighbor:")
+print(cm)
+print(accuracy_kNN)
 
 # CART
-table(predictions = y_hat_L$CART, actual = y)
+cm = table(predictions = y_hat_L$CART, actual = y)
+accuracy_CART = accuracy_from_cm(cm)
+print("CART:")
+print(cm)
+print(accuracy_CART)
 
 # Random Forest
-i = 1 # choose best model
-table(predictions = y_hat_L$RF[,i], actual = y)
+i = 8 # choose best model
+cm = table(predictions = y_hat_L$RF[,i], actual = y)
+accuracy_RF = accuracy_from_cm(cm)
+print("Random Forest:")
+print(cm)
+print(accuracy_RF)
 
 # Boosting
 i = 6 # choose best model
-table(predictions = y_hat_L$Boost[,i], actual = y)
+cm = cm = table(predictions = y_hat_L$Boost[,i], actual = y)
+accuracy_Boost = accuracy_from_cm(cm)
+print("Boosting:")
+print(cm)
+print(accuracy_Boost)
+
+####     ROC Curves      #####
+##############################
+p_hat_best_models = list()
+p_hat_best_models$LR = p_hat_L$LR
+i = 19
+p_hat_best_models$kNN = p_hat_L$kNN[,i]
+p_hat_best_models$CART = p_hat_L$CART
+i = 8
+p_hat_best_models$RF =  p_hat_L$RF[,i]
+i = 6
+p_hat_best_models$Boost = p_hat_L$Boost[,i]
+p_hat_best_models = as.data.frame(p_hat_best_models)
+nmethod = length(p_hat_best_models) 
+auc_array = NULL
+plot(c(0,1),c(0,1),xlab='FPR',ylab='TPR',main="ROC curve",cex.lab=1,type="n")
+for(i in 1:ncol(p_hat_best_models)) {
+  pred = prediction(p_hat_best_models[,i], y)
+  perf = performance(pred, measure = "tpr", x.measure = "fpr") 
+  auc = performance(pred, measure = "auc")
+  auc_array = c(auc_array, auc@y.values)
+  lines(perf@x.values[[1]], perf@y.values[[1]],col=i)
+}
+abline(0,1,lty=2) 
+legend("topleft",legend=names(p_hat_best_models),col=1:nmethod,lty=rep(1,nmethod), cex = 0.5)
+auc_array = as.data.frame(auc_array)
+names(auc_array) = names(p_hat_best_models)
+print(auc_array)
 
 #### Aggreggate Methods?#####
 ##############################
@@ -351,17 +476,74 @@ table(predictions = y_hat_L$Boost[,i], actual = y)
 ##############################
 # See which model is best (minimum deviance)
 which.min(all_losses)
-
+# Result: Boosting #6 (Logistic Regression is very close & has a better accuracy with validation set)
+idv = c(2,4) #Depth
+ntv = c(1000,5000) #Number of trees
+shv = c(0.1,0.01) #Shrinking
+setboost = expand.grid(idv,ntv,shv)
+colnames(setboost) = c("tdepth","ntree","shrink")
 # Retrain best model with train + validation
+# Boosting
+i = 6
+fboost = gbm(Outcome~., data=train_validation_set_numerical, distribution="bernoulli",
+             n.trees=setboost[i,2], 
+             interaction.depth=setboost[i,1], 
+             shrinkage=setboost[i,3])
+p_hat = predict(fboost, newdata=test_set_numerical,n.trees=setboost[i,2], type="response")
+p_hat_boost = p_hat
+y_hat_boost = p_hat
+y_hat_boost[p_hat >= threshold] = 1
+y_hat_boost[p_hat < threshold] = 0
+# Logistic Regression
+lr_fit = glm(Outcome~., train_validation_set, family=binomial(link = "logit"))
+p_hat_lr = predict(lr_fit, test_set, type="response")
+y_hat_lr = matrix(p_hat_lr,ncol = 1)
+y_hat_lr[p_hat_lr >= threshold] = 1
+y_hat_lr[p_hat_lr < threshold] = 0
 
 # Use test set to give a final accuracy description of the model
-
+y = as.numeric(test_set$Outcome)-1
+cm = cm = table(predictions = y_hat_boost, actual = y)
+accuracy_Boost = accuracy_from_cm(cm)
+# specificity: true positive rate (TPR) = TP / (TP + FN)
+specificity = cm[4] / (cm[4] + cm[3])
+# sensitivity: true negative rate (TNR) = TN / (TN + FP)
+sensitivity = cm[1] / (cm[1] + cm[2])
+print("Boosting:")
+print(cm)
+print(accuracy_Boost)
+print(specificity)
+print(sensitivity)
+cm = table(predictions = y_hat_lr, actual = y)
+accuracy_lr = accuracy_from_cm(cm)
+# specificity: true positive rate (TPR) = TP / (TP + FN)
+specificity = cm[4] / (cm[4] + cm[3])
+# sensitivity: true negative rate (TNR) = TN / (TN + FP)
+sensitivity = cm[1] / (cm[1] + cm[2])
+print("Logistic Regression:")
+print(cm)
+print(accuracy_lr)
+print(specificity)
+print(sensitivity)
 
 #### Torunament Prediction #####
 ################################
 # Retrain best model with entire data set (train + validation + test)
+idv = c(2,4) #Depth
+ntv = c(1000,5000) #Number of trees
+shv = c(0.1,0.01) #Shrinking
+setboost = expand.grid(idv,ntv,shv)
+colnames(setboost) = c("tdepth","ntree","shrink")
+# Retrain best model with train + validation + test (tennis_data)
+# Boosting
+i = 6
+fboost = gbm(Outcome~., data=tennis_data_set_numerical, distribution="bernoulli",
+             n.trees=setboost[i,2], 
+             interaction.depth=setboost[i,1], 
+             shrinkage=setboost[i,3])
+# Logistic Regression
+lr_fit = glm(Outcome~., tennis_data_set, family=binomial(link = "logit"))
 
-# Use tournament data (to be provided by Carly / Sylvia)
-# Predict brackets and create following rounds iteratively
+# Use tournament data & predict brackets, creating following rounds iteratively
 
 # Summarize French Open results with each brakcet winners up to final winner
