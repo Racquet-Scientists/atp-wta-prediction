@@ -48,17 +48,17 @@ tennis_data$Player2 = as.factor(tennis_data$Player2)
 tennis_data$Outcome = as.factor(tennis_data$Outcome)
 # Numeric
 tennis_data$P1Rank = as.numeric(tennis_data$P1Rank)
-na_index = is.na(tennis_data$P1Rank)
-tennis_data$P1Rank[na_index] = max(tennis_data$P1Rank, na.rm=TRUE) + 1
+#na_index = is.na(tennis_data$P1Rank)
+#tennis_data$P1Rank[na_index] = max(tennis_data$P1Rank, na.rm=TRUE) + 1
 tennis_data$P2Rank = as.numeric(tennis_data$P2Rank)
-na_index = is.na(tennis_data$P2Rank)
-tennis_data$P2Rank[na_index] = max(tennis_data$P2Rank, na.rm=TRUE) + 1
+#na_index = is.na(tennis_data$P2Rank)
+#tennis_data$P2Rank[na_index] = max(tennis_data$P2Rank, na.rm=TRUE) + 1
 tennis_data$P1Pts = as.numeric(tennis_data$P1Pts)
-na_index = is.na(tennis_data$P1Pts)
-tennis_data$P1Pts[na_index] = 0
+#na_index = is.na(tennis_data$P1Pts)
+#tennis_data$P1Pts[na_index] = 0
 tennis_data$P2Pts = as.numeric(tennis_data$P2Pts)
-na_index = is.na(tennis_data$P2Pts)
-tennis_data$P2Pts[na_index] = 0
+#na_index = is.na(tennis_data$P2Pts)
+#tennis_data$P2Pts[na_index] = 0
 # All other values are already numeric
 
 # Partition Data to Train/Test/Validation
@@ -120,7 +120,7 @@ if (feature_selection) {
 }
 
 # Feature selection:
-# Player1, Player2 
+# Player1, Player2 will be omitted given randomness of samples
 # P1Pts, P2Pts 
 # Player1Srv1Wp, Player1GamesWp, Player1MatchesWp, Player1SetWp
 # Player2Srv1Wp, Player2GamesWp, Player2MatchesWp, Player2SetWp
@@ -541,9 +541,8 @@ fboost = gbm(Outcome~., data=tennis_data_set_numerical, distribution="bernoulli"
              n.trees=setboost[i,2], 
              interaction.depth=setboost[i,1], 
              shrinkage=setboost[i,3])
-# Logistic Regression
-lr_fit = glm(Outcome~., tennis_data_set, family=binomial(link = "logit"))
 
 # Use tournament data & predict brackets, creating following rounds iteratively
+
 
 # Summarize French Open results with each brakcet winners up to final winner
