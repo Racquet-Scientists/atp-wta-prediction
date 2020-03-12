@@ -537,12 +537,288 @@ colnames(setboost) = c("tdepth","ntree","shrink")
 # Retrain best model with train + validation + test (tennis_data)
 # Boosting
 i = 6
-fboost = gbm(Outcome~., data=tennis_data_set_numerical, distribution="bernoulli",
+final_model = gbm(Outcome~., data=tennis_data_set_numerical, distribution="bernoulli",
              n.trees=setboost[i,2], 
              interaction.depth=setboost[i,1], 
              shrinkage=setboost[i,3])
 
 # Use tournament data & predict brackets, creating following rounds iteratively
+french_open_data = read.csv("FrenchOpen2020_1stRound.csv")
+french_open_data = as.data.frame(french_open_data)
+french_open_data$Player1 = as.character(french_open_data$Player1)
+french_open_data$Player2 = as.character(french_open_data$Player2)
+p1_column_names = c("Player1","P1Rank","P1Pts","Player1ACp","Player1DFp","Player1Srv1p","Player1Srv1Wp",
+                    "Player1Srv2Wp","Player1Srv1ReWp","Player1Srv2ReWp","Player1GamesWp","Player1MatchesWp","Player1SetWp")
+p2_column_names = c("Player2","P2Rank","P2Pts","Player2ACp","Player2DFp","Player2Srv1p","Player2Srv1Wp",
+                    "Player2Srv2Wp","Player2Srv1ReWp","Player2Srv2ReWp","Player2GamesWp","Player2MatchesWp","Player2SetWp")
+# 1st Round - 64 games
+french_open_data_1st_round = french_open_data
+tournament_1st_round = as.data.frame(french_open_data_1st_round %>%
+                                  select(P1Pts,P2Pts, 
+                                    Player1Srv1Wp,Player1GamesWp,Player1MatchesWp,Player1SetWp,
+                                    Player2Srv1Wp,Player2GamesWp,Player2MatchesWp,Player2SetWp))
+i = 6
+prob_prediction = predict(final_model, newdata=tournament_1st_round,n.trees=setboost[i,2], type="response")
+outcome_prediction_1st_round = prob_prediction
+outcome_prediction_1st_round[prob_prediction >= threshold] = 1
+outcome_prediction_1st_round[prob_prediction < threshold] = 0
 
+# 2nd Round - 32 games
+french_open_data_2nd_round = french_open_data
+french_open_data_2nd_round$Round = rep("2nd Round",nrow(french_open_data_2nd_round))
+for (i in 1:32) {
+  n = i * 2 - 1
+  if (outcome_prediction_1st_round[n] == 1) {
+    # Copy player 1 into player 1 position
+    for (j in 1:length(p1_column_names)) {
+      french_open_data_2nd_round[i,p1_column_names[j]] = french_open_data_1st_round[n,p1_column_names[j]]
+    }
+  }
+  else {
+    # Copy player 2 into player 1 position
+    for (j in 1:length(p2_column_names)) {
+      french_open_data_2nd_round[i,p1_column_names[j]] = french_open_data_1st_round[n,p2_column_names[j]]
+    }
+  }
+  n = n + 1
+  if (outcome_prediction_1st_round[n] == 1) {
+    # Copy player 1 into player 2 position
+    for (j in 1:length(p1_column_names)) {
+      french_open_data_2nd_round[i,p2_column_names[j]] = french_open_data_1st_round[n,p1_column_names[j]]
+    }
+  }
+  else {
+    # Copy player 2 into player 2 position
+    for (j in 1:length(p2_column_names)) {
+      french_open_data_2nd_round[i,p2_column_names[j]] = french_open_data_1st_round[n,p2_column_names[j]]
+    }
+  }
+}
+french_open_data_2nd_round = french_open_data_2nd_round[1:32,]
+tournament_2nd_round = as.data.frame(french_open_data_2nd_round %>%
+                                       select(P1Pts,P2Pts, 
+                                              Player1Srv1Wp,Player1GamesWp,Player1MatchesWp,Player1SetWp,
+                                              Player2Srv1Wp,Player2GamesWp,Player2MatchesWp,Player2SetWp))
+i = 6
+prob_prediction = predict(final_model, newdata=tournament_2nd_round,n.trees=setboost[i,2], type="response")
+outcome_prediction_2nd_round = prob_prediction
+outcome_prediction_2nd_round[prob_prediction >= threshold] = 1
+outcome_prediction_2nd_round[prob_prediction < threshold] = 0
 
-# Summarize French Open results with each brakcet winners up to final winner
+# 3rd Round - 16 games
+french_open_data_3rd_round = french_open_data
+french_open_data_3rd_round$Round = rep("3rd Round",nrow(french_open_data_3rd_round))
+for (i in 1:16) {
+  n = i * 2 - 1
+  if (outcome_prediction_2nd_round[n] == 1) {
+    # Copy player 1 into player 1 position
+    for (j in 1:length(p1_column_names)) {
+      french_open_data_3rd_round[i,p1_column_names[j]] = french_open_data_2nd_round[n,p1_column_names[j]]
+    }
+  }
+  else {
+    # Copy player 2 into player 1 position
+    for (j in 1:length(p2_column_names)) {
+      french_open_data_3rd_round[i,p1_column_names[j]] = french_open_data_2nd_round[n,p2_column_names[j]]
+    }
+  }
+  n = n + 1
+  if (outcome_prediction_2nd_round[n] == 1) {
+    # Copy player 1 into player 2 position
+    for (j in 1:length(p1_column_names)) {
+      french_open_data_3rd_round[i,p2_column_names[j]] = french_open_data_2nd_round[n,p1_column_names[j]]
+    }
+  }
+  else {
+    # Copy player 2 into player 2 position
+    for (j in 1:length(p2_column_names)) {
+      french_open_data_3rd_round[i,p2_column_names[j]] = french_open_data_2nd_round[n,p2_column_names[j]]
+    }
+  }
+}
+french_open_data_3rd_round = french_open_data_3rd_round[1:16,]
+tournament_3rd_round = as.data.frame(french_open_data_3rd_round %>%
+                                       select(P1Pts,P2Pts, 
+                                              Player1Srv1Wp,Player1GamesWp,Player1MatchesWp,Player1SetWp,
+                                              Player2Srv1Wp,Player2GamesWp,Player2MatchesWp,Player2SetWp))
+i = 6
+prob_prediction = predict(final_model, newdata=tournament_3rd_round,n.trees=setboost[i,2], type="response")
+outcome_prediction_3rd_round = prob_prediction
+outcome_prediction_3rd_round[prob_prediction >= threshold] = 1
+outcome_prediction_3rd_round[prob_prediction < threshold] = 0
+
+# 4th Round - 8 games
+french_open_data_4th_round = french_open_data
+french_open_data_4th_round$Round = rep("4th Round",nrow(french_open_data_4th_round))
+for (i in 1:8) {
+  n = i * 2 - 1
+  if (outcome_prediction_3rd_round[n] == 1) {
+    # Copy player 1 into player 1 position
+    for (j in 1:length(p1_column_names)) {
+      french_open_data_4th_round[i,p1_column_names[j]] = french_open_data_3rd_round[n,p1_column_names[j]]
+    }
+  }
+  else {
+    # Copy player 2 into player 1 position
+    for (j in 1:length(p2_column_names)) {
+      french_open_data_4th_round[i,p1_column_names[j]] = french_open_data_3rd_round[n,p2_column_names[j]]
+    }
+  }
+  n = n + 1
+  if (outcome_prediction_3rd_round[n] == 1) {
+    # Copy player 1 into player 2 position
+    for (j in 1:length(p1_column_names)) {
+      french_open_data_4th_round[i,p2_column_names[j]] = french_open_data_3rd_round[n,p1_column_names[j]]
+    }
+  }
+  else {
+    # Copy player 2 into player 2 position
+    for (j in 1:length(p2_column_names)) {
+      french_open_data_4th_round[i,p2_column_names[j]] = french_open_data_3rd_round[n,p2_column_names[j]]
+    }
+  }
+}
+french_open_data_4th_round = french_open_data_4th_round[1:8,]
+tournament_4th_round = as.data.frame(french_open_data_4th_round %>%
+                                       select(P1Pts,P2Pts, 
+                                              Player1Srv1Wp,Player1GamesWp,Player1MatchesWp,Player1SetWp,
+                                              Player2Srv1Wp,Player2GamesWp,Player2MatchesWp,Player2SetWp))
+i = 6
+prob_prediction = predict(final_model, newdata=tournament_4th_round,n.trees=setboost[i,2], type="response")
+outcome_prediction_4th_round = prob_prediction
+outcome_prediction_4th_round[prob_prediction >= threshold] = 1
+outcome_prediction_4th_round[prob_prediction < threshold] = 0
+
+# Quarterfinals - 4 games
+french_open_data_QF_round = french_open_data
+french_open_data_QF_round$Round = rep("Quarter Finals",nrow(french_open_data_QF_round))
+for (i in 1:4) {
+  n = i * 2 - 1
+  if (outcome_prediction_4th_round[n] == 1) {
+    # Copy player 1 into player 1 position
+    for (j in 1:length(p1_column_names)) {
+      french_open_data_QF_round[i,p1_column_names[j]] = french_open_data_4th_round[n,p1_column_names[j]]
+    }
+  }
+  else {
+    # Copy player 2 into player 1 position
+    for (j in 1:length(p2_column_names)) {
+      french_open_data_QF_round[i,p1_column_names[j]] = french_open_data_4th_round[n,p2_column_names[j]]
+    }
+  }
+  n = n + 1
+  if (outcome_prediction_4th_round[n] == 1) {
+    # Copy player 1 into player 2 position
+    for (j in 1:length(p1_column_names)) {
+      french_open_data_QF_round[i,p2_column_names[j]] = french_open_data_4th_round[n,p1_column_names[j]]
+    }
+  }
+  else {
+    # Copy player 2 into player 2 position
+    for (j in 1:length(p2_column_names)) {
+      french_open_data_QF_round[i,p2_column_names[j]] = french_open_data_4th_round[n,p2_column_names[j]]
+    }
+  }
+}
+french_open_data_QF_round = french_open_data_QF_round[1:4,]
+tournament_QF_round = as.data.frame(french_open_data_QF_round %>%
+                                       select(P1Pts,P2Pts, 
+                                              Player1Srv1Wp,Player1GamesWp,Player1MatchesWp,Player1SetWp,
+                                              Player2Srv1Wp,Player2GamesWp,Player2MatchesWp,Player2SetWp))
+i = 6
+prob_prediction = predict(final_model, newdata=tournament_QF_round,n.trees=setboost[i,2], type="response")
+outcome_prediction_QF_round = prob_prediction
+outcome_prediction_QF_round[prob_prediction >= threshold] = 1
+outcome_prediction_QF_round[prob_prediction < threshold] = 0
+
+# Semifinals - 2 games
+french_open_data_SF_round = french_open_data
+french_open_data_SF_round$Round = rep("Semi Finals",nrow(french_open_data_SF_round))
+for (i in 1:2) {
+  n = i * 2 - 1
+  if (outcome_prediction_QF_round[n] == 1) {
+    # Copy player 1 into player 1 position
+    for (j in 1:length(p1_column_names)) {
+      french_open_data_SF_round[i,p1_column_names[j]] = french_open_data_QF_round[n,p1_column_names[j]]
+    }
+  }
+  else {
+    # Copy player 2 into player 1 position
+    for (j in 1:length(p2_column_names)) {
+      french_open_data_SF_round[i,p1_column_names[j]] = french_open_data_QF_round[n,p2_column_names[j]]
+    }
+  }
+  n = n + 1
+  if (outcome_prediction_QF_round[n] == 1) {
+    # Copy player 1 into player 2 position
+    for (j in 1:length(p1_column_names)) {
+      french_open_data_SF_round[i,p2_column_names[j]] = french_open_data_QF_round[n,p1_column_names[j]]
+    }
+  }
+  else {
+    # Copy player 2 into player 2 position
+    for (j in 1:1) {
+      french_open_data_SF_round[i,p2_column_names[j]] = french_open_data_QF_round[n,p2_column_names[j]]
+    }
+  }
+}
+french_open_data_SF_round = french_open_data_SF_round[1:2,]
+tournament_SF_round = as.data.frame(french_open_data_SF_round %>%
+                                      select(P1Pts,P2Pts, 
+                                             Player1Srv1Wp,Player1GamesWp,Player1MatchesWp,Player1SetWp,
+                                             Player2Srv1Wp,Player2GamesWp,Player2MatchesWp,Player2SetWp))
+i = 6
+prob_prediction = predict(final_model, newdata=tournament_SF_round,n.trees=setboost[i,2], type="response")
+outcome_prediction_SF_round = prob_prediction
+outcome_prediction_SF_round[prob_prediction >= threshold] = 1
+outcome_prediction_SF_round[prob_prediction < threshold] = 0
+
+# Final - 1 game
+french_open_data_Final_round = french_open_data
+french_open_data_Final_round$Round = rep("Final",nrow(french_open_data_Final_round))
+for (i in 1:1) {
+  n = i * 2 - 1
+  if (outcome_prediction_SF_round[n] == 1) {
+    # Copy player 1 into player 1 position
+    for (j in 1:length(p1_column_names)) {
+      french_open_data_Final_round[i,p1_column_names[j]] = french_open_data_SF_round[n,p1_column_names[j]]
+    }
+  }
+  else {
+    # Copy player 2 into player 1 position
+    for (j in 1:length(p2_column_names)) {
+      french_open_data_Final_round[i,p1_column_names[j]] = french_open_data_SF_round[n,p2_column_names[j]]
+    }
+  }
+  n = n + 1
+  if (outcome_prediction_SF_round[n] == 1) {
+    # Copy player 1 into player 2 position
+    for (j in 1:length(p1_column_names)) {
+      french_open_data_Final_round[i,p2_column_names[j]] = french_open_data_SF_round[n,p1_column_names[j]]
+    }
+  }
+  else {
+    # Copy player 2 into player 2 position
+    for (j in 1:length(p2_column_names)) {
+      french_open_data_Final_round[i,p2_column_names[j]] = french_open_data_SF_round[n,p2_column_names[j]]
+    }
+  }
+}
+french_open_data_Final_round = french_open_data_Final_round[1,]
+tournament_Final_round = as.data.frame(french_open_data_Final_round %>%
+                                      select(P1Pts,P2Pts, 
+                                             Player1Srv1Wp,Player1GamesWp,Player1MatchesWp,Player1SetWp,
+                                             Player2Srv1Wp,Player2GamesWp,Player2MatchesWp,Player2SetWp))
+i = 6
+prob_prediction = predict(final_model, newdata=tournament_Final_round,n.trees=setboost[i,2], type="response")
+outcome_prediction_Final_round = prob_prediction
+outcome_prediction_Final_round[prob_prediction >= threshold] = 1
+outcome_prediction_Final_round[prob_prediction < threshold] = 0
+
+if (outcome_prediction_Final_round == 1) {
+  winner = french_open_data_Final_round$Player1
+} else {
+  winner = french_open_data_Final_round$Player2
+}
+
+print(paste("French Open Winner: ",winner))
