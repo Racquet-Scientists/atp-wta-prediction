@@ -535,12 +535,47 @@ shv = c(0.1,0.01) #Shrinking
 setboost = expand.grid(idv,ntv,shv)
 colnames(setboost) = c("tdepth","ntree","shrink")
 # Retrain best model with train + validation + test (tennis_data)
-# Boosting
+load.Rdata(filename="Results.Rdata", objname = "tennis_data") 
+names(tennis_data)[6] = "BestOf"
+tennis_data$Tournament = as.factor(tennis_data$Tournament)
+tennis_data$Year = as.factor(tennis_data$Year)
+tennis_data$Court = as.factor(tennis_data$Court)
+tennis_data$Surface = as.factor(tennis_data$Surface)
+tennis_data$Round = as.factor(tennis_data$Round)
+tennis_data$BestOf = as.factor(tennis_data$BestOf)
+tennis_data$Player1 = as.factor(tennis_data$Player1)
+tennis_data$Player2 = as.factor(tennis_data$Player2)
+tennis_data$Outcome = as.factor(tennis_data$Outcome)
+tennis_data$P1Rank = as.numeric(tennis_data$P1Rank)
+tennis_data$P2Rank = as.numeric(tennis_data$P2Rank)
+tennis_data$P1Pts = as.numeric(tennis_data$P1Pts)
+tennis_data$P2Pts = as.numeric(tennis_data$P2Pts)
+tennis_data_set = tennis_data
+tennis_data_set = as.data.frame(tennis_data_set %>%
+                                       select(Outcome,P1Pts,P2Pts, 
+                                              Player1Srv1Wp,Player1GamesWp,Player1MatchesWp,Player1SetWp,
+                                              Player2Srv1Wp,Player2GamesWp,Player2MatchesWp,Player2SetWp))
+tennis_data_set_numerical = tennis_data_set
+tennis_data_set_numerical$Outcome = as.numeric(tennis_data_set$Outcome)-1
+tennis_data_set_numeric = tennis_data_set
+tennis_data_set_numeric$Player1Srv1Wp = as.numeric(tennis_data_set_numeric$Player1Srv1Wp)
+tennis_data_set_numeric$Player1GamesWp = as.numeric(tennis_data_set_numeric$Player1GamesWp)
+tennis_data_set_numeric$Player1MatchesWp = as.numeric(tennis_data_set_numeric$Player1MatchesWp)
+tennis_data_set_numeric$Player1SetWp = as.numeric(tennis_data_set_numeric$Player1SetWp)
+tennis_data_set_numeric$Player2Srv1Wp = as.numeric(tennis_data_set_numeric$Player2Srv1Wp)
+tennis_data_set_numeric$Player2GamesWp = as.numeric(tennis_data_set_numeric$Player2GamesWp)
+tennis_data_set_numeric$Player2MatchesWp = as.numeric(tennis_data_set_numeric$Player2MatchesWp)
+tennis_data_set_numeric$Player2SetWp = as.numeric(tennis_data_set_numeric$Player2SetWp)
 i = 6
-final_model = gbm(Outcome~., data=tennis_data_set_numerical, distribution="bernoulli",
-             n.trees=setboost[i,2], 
-             interaction.depth=setboost[i,1], 
-             shrinkage=setboost[i,3])
+model = "boost"
+if (model == "boost") {
+  final_model = gbm(Outcome~., data=tennis_data_set_numerical, distribution="bernoulli",
+               n.trees=setboost[i,2], 
+               interaction.depth=setboost[i,1], 
+               shrinkage=setboost[i,3])
+} else {
+  final_model = glm(Outcome~., tennis_data_set_numeric, family=binomial(link = "logit"))
+}
 
 # Create variables needed for tournament simulation
 french_open_data = read.csv("FrenchOpen2020_1stRound.csv")
@@ -580,10 +615,30 @@ for (count in 1:simulations) {
   # Generate simulation
   french_open_simulation = create_tournament_simulation(french_open_data,players,positions_available,p1_column_names,p2_column_names)
   # Execute simulation
-  simulation_results = simulate_tournament(french_open_simulation,final_model,setboost,p1_column_names,p2_column_names,players)
+  simulation_results = simulate_tournament(french_open_simulation,final_model,setboost,p1_column_names,p2_column_names,players,model)
   all_simulation_results = cbind(all_simulation_results,simulation_results$results)
   names(all_simulation_results)[count + 2] = sprintf("sim_%d",count)
 }
+simmulation_summary = all_simulation_results[,1:2]
+simmulation_summary$winner = 0
+simmulation_summary$final = 0
+simmulation_summary$semi_final = 0
+simmulation_summary$quarter_final = 0
+simmulation_summary$round_4 = 0
+simmulation_summary$round_3 = 0
+simmulation_summary$round_2 = 0
+simmulation_summary$round_1 = 0
+for (i in 1:nrow(simmulation_summary)) {
+  simmulation_summary$winner[i] = sum((all_simulation_results[i,3:(simulations+2)] == "winner")*1) / simulations * 100
+  simmulation_summary$final[i] = sum((all_simulation_results[i,3:(simulations+2)] == "final")*1) / simulations * 100
+  simmulation_summary$semi_final[i] = sum((all_simulation_results[i,3:(simulations+2)] == "semi_finals")*1) / simulations * 100
+  simmulation_summary$quarter_final[i] = sum((all_simulation_results[i,3:(simulations+2)] == "quarter_finals")*1) / simulations * 100
+  simmulation_summary$round_4[i] = sum((all_simulation_results[i,3:(simulations+2)] == "4th_round")*1) / simulations * 100
+  simmulation_summary$round_3[i] = sum((all_simulation_results[i,3:(simulations+2)] == "3rd_round")*1) / simulations * 100
+  simmulation_summary$round_2[i] = sum((all_simulation_results[i,3:(simulations+2)] == "2nd_round")*1) / simulations * 100
+  simmulation_summary$round_1[i] = sum((all_simulation_results[i,3:(simulations+2)] == "1st_round")*1) / simulations * 100
+}
+simmulation_summary_boost = simmulation_summary
 
 #### Simulation Functions  #####
 ################################
@@ -639,7 +694,7 @@ create_tournament_simulation = function(french_open_data,players,positions_avail
 }
 #### Executing Simulation
 ################################
-simulate_tournament = function(french_open_data,final_model,setboost,p1_column_names,p2_column_names,players) {
+simulate_tournament = function(french_open_data,final_model,setboost,p1_column_names,p2_column_names,players,model_selected) {
   simulation_results = as.data.frame(players[,1])
   names(simulation_results) = "name"
   current_round = "1st_round"
@@ -651,7 +706,11 @@ simulate_tournament = function(french_open_data,final_model,setboost,p1_column_n
                                                 Player1Srv1Wp,Player1GamesWp,Player1MatchesWp,Player1SetWp,
                                                 Player2Srv1Wp,Player2GamesWp,Player2MatchesWp,Player2SetWp))
   i = 6
-  prob_prediction = predict(final_model, newdata=tournament_1st_round,n.trees=setboost[i,2], type="response")
+  if (model_selected == "boost") {
+    prob_prediction = predict(final_model, newdata=tournament_1st_round,n.trees=setboost[i,2], type="response")
+  } else {
+    prob_prediction = predict(final_model, tournament_1st_round, type="response")
+  }
   outcome_prediction_1st_round = prob_prediction
   outcome_prediction_1st_round[prob_prediction >= threshold] = 1
   outcome_prediction_1st_round[prob_prediction < threshold] = 0
@@ -696,7 +755,11 @@ simulate_tournament = function(french_open_data,final_model,setboost,p1_column_n
                                                 Player1Srv1Wp,Player1GamesWp,Player1MatchesWp,Player1SetWp,
                                                 Player2Srv1Wp,Player2GamesWp,Player2MatchesWp,Player2SetWp))
   i = 6
-  prob_prediction = predict(final_model, newdata=tournament_2nd_round,n.trees=setboost[i,2], type="response")
+  if (model_selected == "boost") {
+    prob_prediction = predict(final_model, newdata=tournament_2nd_round,n.trees=setboost[i,2], type="response")
+  } else {
+    prob_prediction = predict(final_model, tournament_2nd_round, type="response")
+  }
   outcome_prediction_2nd_round = prob_prediction
   outcome_prediction_2nd_round[prob_prediction >= threshold] = 1
   outcome_prediction_2nd_round[prob_prediction < threshold] = 0
@@ -741,7 +804,11 @@ simulate_tournament = function(french_open_data,final_model,setboost,p1_column_n
                                                 Player1Srv1Wp,Player1GamesWp,Player1MatchesWp,Player1SetWp,
                                                 Player2Srv1Wp,Player2GamesWp,Player2MatchesWp,Player2SetWp))
   i = 6
-  prob_prediction = predict(final_model, newdata=tournament_3rd_round,n.trees=setboost[i,2], type="response")
+  if (model_selected == "boost") {
+    prob_prediction = predict(final_model, newdata=tournament_3rd_round,n.trees=setboost[i,2], type="response")
+  } else {
+    prob_prediction = predict(final_model, tournament_3rd_round, type="response")
+  }
   outcome_prediction_3rd_round = prob_prediction
   outcome_prediction_3rd_round[prob_prediction >= threshold] = 1
   outcome_prediction_3rd_round[prob_prediction < threshold] = 0
@@ -786,7 +853,11 @@ simulate_tournament = function(french_open_data,final_model,setboost,p1_column_n
                                                 Player1Srv1Wp,Player1GamesWp,Player1MatchesWp,Player1SetWp,
                                                 Player2Srv1Wp,Player2GamesWp,Player2MatchesWp,Player2SetWp))
   i = 6
-  prob_prediction = predict(final_model, newdata=tournament_4th_round,n.trees=setboost[i,2], type="response")
+  if (model_selected == "boost") {
+    prob_prediction = predict(final_model, newdata=tournament_4th_round,n.trees=setboost[i,2], type="response")
+  } else {
+    prob_prediction = predict(final_model, tournament_4th_round, type="response")
+  }
   outcome_prediction_4th_round = prob_prediction
   outcome_prediction_4th_round[prob_prediction >= threshold] = 1
   outcome_prediction_4th_round[prob_prediction < threshold] = 0
@@ -831,7 +902,11 @@ simulate_tournament = function(french_open_data,final_model,setboost,p1_column_n
                                                Player1Srv1Wp,Player1GamesWp,Player1MatchesWp,Player1SetWp,
                                                Player2Srv1Wp,Player2GamesWp,Player2MatchesWp,Player2SetWp))
   i = 6
-  prob_prediction = predict(final_model, newdata=tournament_QF_round,n.trees=setboost[i,2], type="response")
+  if (model_selected == "boost") {
+    prob_prediction = predict(final_model, newdata=tournament_QF_round,n.trees=setboost[i,2], type="response")
+  } else {
+    prob_prediction = predict(final_model, tournament_QF_round, type="response")
+  }
   outcome_prediction_QF_round = prob_prediction
   outcome_prediction_QF_round[prob_prediction >= threshold] = 1
   outcome_prediction_QF_round[prob_prediction < threshold] = 0
@@ -876,7 +951,11 @@ simulate_tournament = function(french_open_data,final_model,setboost,p1_column_n
                                                Player1Srv1Wp,Player1GamesWp,Player1MatchesWp,Player1SetWp,
                                                Player2Srv1Wp,Player2GamesWp,Player2MatchesWp,Player2SetWp))
   i = 6
-  prob_prediction = predict(final_model, newdata=tournament_SF_round,n.trees=setboost[i,2], type="response")
+  if (model_selected == "boost") {
+    prob_prediction = predict(final_model, newdata=tournament_SF_round,n.trees=setboost[i,2], type="response")
+  } else {
+    prob_prediction = predict(final_model, tournament_SF_round, type="response")
+  }
   outcome_prediction_SF_round = prob_prediction
   outcome_prediction_SF_round[prob_prediction >= threshold] = 1
   outcome_prediction_SF_round[prob_prediction < threshold] = 0
@@ -921,7 +1000,11 @@ simulate_tournament = function(french_open_data,final_model,setboost,p1_column_n
                                                   Player1Srv1Wp,Player1GamesWp,Player1MatchesWp,Player1SetWp,
                                                   Player2Srv1Wp,Player2GamesWp,Player2MatchesWp,Player2SetWp))
   i = 6
-  prob_prediction = predict(final_model, newdata=tournament_Final_round,n.trees=setboost[i,2], type="response")
+  if (model_selected == "boost") {
+    prob_prediction = predict(final_model, newdata=tournament_Final_round,n.trees=setboost[i,2], type="response")
+  } else {
+    prob_prediction = predict(final_model, tournament_Final_round, type="response")
+  }
   outcome_prediction_Final_round = prob_prediction
   outcome_prediction_Final_round[prob_prediction >= threshold] = 1
   outcome_prediction_Final_round[prob_prediction < threshold] = 0
