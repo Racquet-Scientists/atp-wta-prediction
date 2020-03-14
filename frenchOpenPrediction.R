@@ -607,7 +607,7 @@ positions_taken = players$position[1:32]
 positions_available = 1:128
 positions_available = positions_available[-positions_taken]
 # Running simulations
-simulations = 100
+simulations = 1000
 all_simulation_results = as.data.frame(players$name)
 names(all_simulation_results) = "name"
 all_simulation_results$rank = players$rank
@@ -639,6 +639,7 @@ for (i in 1:nrow(simmulation_summary)) {
   simmulation_summary$round_1[i] = sum((all_simulation_results[i,3:(simulations+2)] == "1st_round")*1) / simulations * 100
 }
 simmulation_summary_boost = simmulation_summary
+write.csv(simmulation_summary_boost,"simulation_results_summary.csv")
 
 #### Simulation Functions  #####
 ################################
