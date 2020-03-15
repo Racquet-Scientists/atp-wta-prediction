@@ -94,7 +94,7 @@ y_hat_L = list() # list of predictions calculated by each model
 if (feature_selection) {
   x = model.matrix(Outcome~.,train_set)
   y = train_set$Outcome
-  lasso_fit = cv.glmnet(x,y,alpha=1,family="binomial",type.measure="mse")
+  lasso_fit = cv.glmnet(x,y,alpha=1,family="binomial",type.measure="class")
   # Evaluate LASSO with min lambda and lambda 1 standard error
   # Visual representation
   par(mfrow=c(1,1))
@@ -107,12 +107,7 @@ if (feature_selection) {
   options(max.print= 1000000, width = 1000)
   sink("variable_selection", append=FALSE, split=FALSE)
   coef(lasso_fit,s=lambda_min)
-  # Variables showing coefficient values (selected by LASSO):
-  # Player1, Player2, P1Pts, P2Pts, Player1Srv1Wp, Player1Srv2Wp, Player1GamesWp, Player1MatchesWp, Player1SetWp, Player2Srv1p, Player2Srv1Wp, Player2GamesWp, Player2MatchesWp, Player2SetWp
   coef(lasso_fit,s=lambda_1se)
-  # Variables showing coefficient values (selected by LASSO):
-  # Player1, Player2, P1Pts, P2Pts, Player1Srv1Wp, Player1GamesWp, Player1MatchesWp, Player1SetWp, Player2Srv1Wp, Player2GamesWp, Player2MatchesWp, Player2SetWp
-  
   # return to default output
   sink()
   closeAllConnections()
