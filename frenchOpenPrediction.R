@@ -607,7 +607,7 @@ positions_taken = players$position[1:32]
 positions_available = 1:128
 positions_available = positions_available[-positions_taken]
 # Running simulations
-simulations = 1000
+simulations = 10000
 all_simulation_results = as.data.frame(players$name)
 names(all_simulation_results) = "name"
 all_simulation_results$rank = players$rank
@@ -619,27 +619,27 @@ for (count in 1:simulations) {
   all_simulation_results = cbind(all_simulation_results,simulation_results$results)
   names(all_simulation_results)[count + 2] = sprintf("sim_%d",count)
 }
-simmulation_summary = all_simulation_results[,1:2]
-simmulation_summary$winner = 0
-simmulation_summary$final = 0
-simmulation_summary$semi_final = 0
-simmulation_summary$quarter_final = 0
-simmulation_summary$round_4 = 0
-simmulation_summary$round_3 = 0
-simmulation_summary$round_2 = 0
-simmulation_summary$round_1 = 0
-for (i in 1:nrow(simmulation_summary)) {
-  simmulation_summary$winner[i] = sum((all_simulation_results[i,3:(simulations+2)] == "winner")*1) / simulations * 100
-  simmulation_summary$final[i] = sum((all_simulation_results[i,3:(simulations+2)] == "final")*1) / simulations * 100
-  simmulation_summary$semi_final[i] = sum((all_simulation_results[i,3:(simulations+2)] == "semi_finals")*1) / simulations * 100
-  simmulation_summary$quarter_final[i] = sum((all_simulation_results[i,3:(simulations+2)] == "quarter_finals")*1) / simulations * 100
-  simmulation_summary$round_4[i] = sum((all_simulation_results[i,3:(simulations+2)] == "4th_round")*1) / simulations * 100
-  simmulation_summary$round_3[i] = sum((all_simulation_results[i,3:(simulations+2)] == "3rd_round")*1) / simulations * 100
-  simmulation_summary$round_2[i] = sum((all_simulation_results[i,3:(simulations+2)] == "2nd_round")*1) / simulations * 100
-  simmulation_summary$round_1[i] = sum((all_simulation_results[i,3:(simulations+2)] == "1st_round")*1) / simulations * 100
+simulation_summary = all_simulation_results[,1:2]
+simulation_summary$winner = 0
+simulation_summary$final = 0
+simulation_summary$semi_final = 0
+simulation_summary$quarter_final = 0
+simulation_summary$round_4 = 0
+simulation_summary$round_3 = 0
+simulation_summary$round_2 = 0
+simulation_summary$round_1 = 0
+for (i in 1:nrow(simulation_summary)) {
+  simulation_summary$winner[i] = sum((all_simulation_results[i,3:(simulations+2)] == "winner")*1) / simulations * 100
+  simulation_summary$final[i] = sum((all_simulation_results[i,3:(simulations+2)] == "final")*1) / simulations * 100
+  simulation_summary$semi_final[i] = sum((all_simulation_results[i,3:(simulations+2)] == "semi_finals")*1) / simulations * 100
+  simulation_summary$quarter_final[i] = sum((all_simulation_results[i,3:(simulations+2)] == "quarter_finals")*1) / simulations * 100
+  simulation_summary$round_4[i] = sum((all_simulation_results[i,3:(simulations+2)] == "4th_round")*1) / simulations * 100
+  simulation_summary$round_3[i] = sum((all_simulation_results[i,3:(simulations+2)] == "3rd_round")*1) / simulations * 100
+  simulation_summary$round_2[i] = sum((all_simulation_results[i,3:(simulations+2)] == "2nd_round")*1) / simulations * 100
+  simulation_summary$round_1[i] = sum((all_simulation_results[i,3:(simulations+2)] == "1st_round")*1) / simulations * 100
 }
-simmulation_summary_boost = simmulation_summary
-write.csv(simmulation_summary_boost,"simulation_results_summary.csv")
+simulation_summary_boost = simulation_summary
+write.csv(simulation_summary_boost,"simulation_results_summary.csv")
 
 #### Simulation Functions  #####
 ################################
@@ -693,15 +693,16 @@ create_tournament_simulation = function(french_open_data,players,positions_avail
   }
   return (french_open_data_simulation)
 }
-#### Executing Simulation
+####  Executing Simulation  ####
 ################################
-simulate_tournament = function(french_open_data,final_model,setboost,p1_column_names,p2_column_names,players,model_selected) {
+simulate_tournament = function(french_open_simulation,final_model,setboost,p1_column_names,p2_column_names,players,model_selected) {
   simulation_results = as.data.frame(players[,1])
   names(simulation_results) = "name"
   current_round = "1st_round"
   simulation_results$results = current_round
   # 1st Round - 64 games
-  french_open_data_1st_round = french_open_data
+  french_open_data_1st_round = french_open_simulation
+  french_open_data_1st_round = shuffle_matches(french_open_data_1st_round,p1_column_names,p2_column_names)
   tournament_1st_round = as.data.frame(french_open_data_1st_round %>%
                                          select(P1Pts,P2Pts, 
                                                 Player1Srv1Wp,Player1GamesWp,Player1MatchesWp,Player1SetWp,
@@ -718,7 +719,7 @@ simulate_tournament = function(french_open_data,final_model,setboost,p1_column_n
   
   # 2nd Round - 32 games
   current_round = "2nd_round"
-  french_open_data_2nd_round = french_open_data
+  french_open_data_2nd_round = french_open_simulation
   french_open_data_2nd_round$Round = rep("2nd Round",nrow(french_open_data_2nd_round))
   for (i in 1:32) {
     n = i * 2 - 1
@@ -727,8 +728,7 @@ simulate_tournament = function(french_open_data,final_model,setboost,p1_column_n
       for (j in 1:length(p1_column_names)) {
         french_open_data_2nd_round[i,p1_column_names[j]] = french_open_data_1st_round[n,p1_column_names[j]]
       }
-    }
-    else {
+    } else {
       # Copy player 2 into player 1 position
       for (j in 1:length(p2_column_names)) {
         french_open_data_2nd_round[i,p1_column_names[j]] = french_open_data_1st_round[n,p2_column_names[j]]
@@ -740,8 +740,7 @@ simulate_tournament = function(french_open_data,final_model,setboost,p1_column_n
       for (j in 1:length(p1_column_names)) {
         french_open_data_2nd_round[i,p2_column_names[j]] = french_open_data_1st_round[n,p1_column_names[j]]
       }
-    }
-    else {
+    } else {
       # Copy player 2 into player 2 position
       for (j in 1:length(p2_column_names)) {
         french_open_data_2nd_round[i,p2_column_names[j]] = french_open_data_1st_round[n,p2_column_names[j]]
@@ -751,6 +750,7 @@ simulate_tournament = function(french_open_data,final_model,setboost,p1_column_n
     simulation_results$results[match(french_open_data_2nd_round$Player2[i],simulation_results$name)] = current_round
   }
   french_open_data_2nd_round = french_open_data_2nd_round[1:32,]
+  french_open_data_2nd_round = shuffle_matches(french_open_data_2nd_round,p1_column_names,p2_column_names)
   tournament_2nd_round = as.data.frame(french_open_data_2nd_round %>%
                                          select(P1Pts,P2Pts, 
                                                 Player1Srv1Wp,Player1GamesWp,Player1MatchesWp,Player1SetWp,
@@ -767,7 +767,7 @@ simulate_tournament = function(french_open_data,final_model,setboost,p1_column_n
   
   # 3rd Round - 16 games
   current_round = "3rd_round"
-  french_open_data_3rd_round = french_open_data
+  french_open_data_3rd_round = french_open_simulation
   french_open_data_3rd_round$Round = rep("3rd Round",nrow(french_open_data_3rd_round))
   for (i in 1:16) {
     n = i * 2 - 1
@@ -776,8 +776,7 @@ simulate_tournament = function(french_open_data,final_model,setboost,p1_column_n
       for (j in 1:length(p1_column_names)) {
         french_open_data_3rd_round[i,p1_column_names[j]] = french_open_data_2nd_round[n,p1_column_names[j]]
       }
-    }
-    else {
+    } else {
       # Copy player 2 into player 1 position
       for (j in 1:length(p2_column_names)) {
         french_open_data_3rd_round[i,p1_column_names[j]] = french_open_data_2nd_round[n,p2_column_names[j]]
@@ -789,17 +788,17 @@ simulate_tournament = function(french_open_data,final_model,setboost,p1_column_n
       for (j in 1:length(p1_column_names)) {
         french_open_data_3rd_round[i,p2_column_names[j]] = french_open_data_2nd_round[n,p1_column_names[j]]
       }
-    }
-    else {
+    } else {
       # Copy player 2 into player 2 position
       for (j in 1:length(p2_column_names)) {
         french_open_data_3rd_round[i,p2_column_names[j]] = french_open_data_2nd_round[n,p2_column_names[j]]
       }
     }
-    simulation_results$results[match(french_open_data_2nd_round$Player1[i],simulation_results$name)] = current_round
-    simulation_results$results[match(french_open_data_2nd_round$Player2[i],simulation_results$name)] = current_round
+    simulation_results$results[match(french_open_data_3rd_round$Player1[i],simulation_results$name)] = current_round
+    simulation_results$results[match(french_open_data_3rd_round$Player2[i],simulation_results$name)] = current_round
   }
   french_open_data_3rd_round = french_open_data_3rd_round[1:16,]
+  french_open_data_3rd_round = shuffle_matches(french_open_data_3rd_round,p1_column_names,p2_column_names)
   tournament_3rd_round = as.data.frame(french_open_data_3rd_round %>%
                                          select(P1Pts,P2Pts, 
                                                 Player1Srv1Wp,Player1GamesWp,Player1MatchesWp,Player1SetWp,
@@ -816,7 +815,7 @@ simulate_tournament = function(french_open_data,final_model,setboost,p1_column_n
   
   # 4th Round - 8 games
   current_round = "4th_round"
-  french_open_data_4th_round = french_open_data
+  french_open_data_4th_round = french_open_simulation
   french_open_data_4th_round$Round = rep("4th Round",nrow(french_open_data_4th_round))
   for (i in 1:8) {
     n = i * 2 - 1
@@ -825,8 +824,7 @@ simulate_tournament = function(french_open_data,final_model,setboost,p1_column_n
       for (j in 1:length(p1_column_names)) {
         french_open_data_4th_round[i,p1_column_names[j]] = french_open_data_3rd_round[n,p1_column_names[j]]
       }
-    }
-    else {
+    } else {
       # Copy player 2 into player 1 position
       for (j in 1:length(p2_column_names)) {
         french_open_data_4th_round[i,p1_column_names[j]] = french_open_data_3rd_round[n,p2_column_names[j]]
@@ -838,17 +836,17 @@ simulate_tournament = function(french_open_data,final_model,setboost,p1_column_n
       for (j in 1:length(p1_column_names)) {
         french_open_data_4th_round[i,p2_column_names[j]] = french_open_data_3rd_round[n,p1_column_names[j]]
       }
-    }
-    else {
+    } else {
       # Copy player 2 into player 2 position
       for (j in 1:length(p2_column_names)) {
         french_open_data_4th_round[i,p2_column_names[j]] = french_open_data_3rd_round[n,p2_column_names[j]]
       }
     }
-    simulation_results$results[match(french_open_data_2nd_round$Player1[i],simulation_results$name)] = current_round
-    simulation_results$results[match(french_open_data_2nd_round$Player2[i],simulation_results$name)] = current_round
+    simulation_results$results[match(french_open_data_4th_round$Player1[i],simulation_results$name)] = current_round
+    simulation_results$results[match(french_open_data_4th_round$Player2[i],simulation_results$name)] = current_round
   }
   french_open_data_4th_round = french_open_data_4th_round[1:8,]
+  french_open_data_4th_round = shuffle_matches(french_open_data_4th_round,p1_column_names,p2_column_names)
   tournament_4th_round = as.data.frame(french_open_data_4th_round %>%
                                          select(P1Pts,P2Pts, 
                                                 Player1Srv1Wp,Player1GamesWp,Player1MatchesWp,Player1SetWp,
@@ -865,7 +863,7 @@ simulate_tournament = function(french_open_data,final_model,setboost,p1_column_n
   
   # Quarterfinals - 4 games
   current_round = "quarter_finals"
-  french_open_data_QF_round = french_open_data
+  french_open_data_QF_round = french_open_simulation
   french_open_data_QF_round$Round = rep("Quarter Finals",nrow(french_open_data_QF_round))
   for (i in 1:4) {
     n = i * 2 - 1
@@ -874,8 +872,7 @@ simulate_tournament = function(french_open_data,final_model,setboost,p1_column_n
       for (j in 1:length(p1_column_names)) {
         french_open_data_QF_round[i,p1_column_names[j]] = french_open_data_4th_round[n,p1_column_names[j]]
       }
-    }
-    else {
+    } else {
       # Copy player 2 into player 1 position
       for (j in 1:length(p2_column_names)) {
         french_open_data_QF_round[i,p1_column_names[j]] = french_open_data_4th_round[n,p2_column_names[j]]
@@ -887,17 +884,17 @@ simulate_tournament = function(french_open_data,final_model,setboost,p1_column_n
       for (j in 1:length(p1_column_names)) {
         french_open_data_QF_round[i,p2_column_names[j]] = french_open_data_4th_round[n,p1_column_names[j]]
       }
-    }
-    else {
+    } else {
       # Copy player 2 into player 2 position
       for (j in 1:length(p2_column_names)) {
         french_open_data_QF_round[i,p2_column_names[j]] = french_open_data_4th_round[n,p2_column_names[j]]
       }
     }
-    simulation_results$results[match(french_open_data_2nd_round$Player1[i],simulation_results$name)] = current_round
-    simulation_results$results[match(french_open_data_2nd_round$Player2[i],simulation_results$name)] = current_round
+    simulation_results$results[match(french_open_data_QF_round$Player1[i],simulation_results$name)] = current_round
+    simulation_results$results[match(french_open_data_QF_round$Player2[i],simulation_results$name)] = current_round
   }
   french_open_data_QF_round = french_open_data_QF_round[1:4,]
+  french_open_data_QF_round = shuffle_matches(french_open_data_QF_round,p1_column_names,p2_column_names)
   tournament_QF_round = as.data.frame(french_open_data_QF_round %>%
                                         select(P1Pts,P2Pts, 
                                                Player1Srv1Wp,Player1GamesWp,Player1MatchesWp,Player1SetWp,
@@ -914,7 +911,7 @@ simulate_tournament = function(french_open_data,final_model,setboost,p1_column_n
   
   # Semifinals - 2 games
   current_round = "semi_finals"
-  french_open_data_SF_round = french_open_data
+  french_open_data_SF_round = french_open_simulation
   french_open_data_SF_round$Round = rep("Semi Finals",nrow(french_open_data_SF_round))
   for (i in 1:2) {
     n = i * 2 - 1
@@ -923,8 +920,7 @@ simulate_tournament = function(french_open_data,final_model,setboost,p1_column_n
       for (j in 1:length(p1_column_names)) {
         french_open_data_SF_round[i,p1_column_names[j]] = french_open_data_QF_round[n,p1_column_names[j]]
       }
-    }
-    else {
+    } else {
       # Copy player 2 into player 1 position
       for (j in 1:length(p2_column_names)) {
         french_open_data_SF_round[i,p1_column_names[j]] = french_open_data_QF_round[n,p2_column_names[j]]
@@ -936,17 +932,17 @@ simulate_tournament = function(french_open_data,final_model,setboost,p1_column_n
       for (j in 1:length(p1_column_names)) {
         french_open_data_SF_round[i,p2_column_names[j]] = french_open_data_QF_round[n,p1_column_names[j]]
       }
-    }
-    else {
+    } else {
       # Copy player 2 into player 2 position
       for (j in 1:1) {
         french_open_data_SF_round[i,p2_column_names[j]] = french_open_data_QF_round[n,p2_column_names[j]]
       }
     }
-    simulation_results$results[match(french_open_data_2nd_round$Player1[i],simulation_results$name)] = current_round
-    simulation_results$results[match(french_open_data_2nd_round$Player2[i],simulation_results$name)] = current_round
+    simulation_results$results[match(french_open_data_SF_round$Player1[i],simulation_results$name)] = current_round
+    simulation_results$results[match(french_open_data_SF_round$Player2[i],simulation_results$name)] = current_round
   }
   french_open_data_SF_round = french_open_data_SF_round[1:2,]
+  french_open_data_SF_round = shuffle_matches(french_open_data_SF_round,p1_column_names,p2_column_names)
   tournament_SF_round = as.data.frame(french_open_data_SF_round %>%
                                         select(P1Pts,P2Pts, 
                                                Player1Srv1Wp,Player1GamesWp,Player1MatchesWp,Player1SetWp,
@@ -963,7 +959,7 @@ simulate_tournament = function(french_open_data,final_model,setboost,p1_column_n
   
   # Final - 1 game
   current_round = "final"
-  french_open_data_Final_round = french_open_data
+  french_open_data_Final_round = french_open_simulation
   french_open_data_Final_round$Round = rep("Final",nrow(french_open_data_Final_round))
   for (i in 1:1) {
     n = i * 2 - 1
@@ -972,8 +968,7 @@ simulate_tournament = function(french_open_data,final_model,setboost,p1_column_n
       for (j in 1:length(p1_column_names)) {
         french_open_data_Final_round[i,p1_column_names[j]] = french_open_data_SF_round[n,p1_column_names[j]]
       }
-    }
-    else {
+    } else {
       # Copy player 2 into player 1 position
       for (j in 1:length(p2_column_names)) {
         french_open_data_Final_round[i,p1_column_names[j]] = french_open_data_SF_round[n,p2_column_names[j]]
@@ -985,17 +980,17 @@ simulate_tournament = function(french_open_data,final_model,setboost,p1_column_n
       for (j in 1:length(p1_column_names)) {
         french_open_data_Final_round[i,p2_column_names[j]] = french_open_data_SF_round[n,p1_column_names[j]]
       }
-    }
-    else {
+    } else {
       # Copy player 2 into player 2 position
       for (j in 1:length(p2_column_names)) {
         french_open_data_Final_round[i,p2_column_names[j]] = french_open_data_SF_round[n,p2_column_names[j]]
       }
     }
-    simulation_results$results[match(french_open_data_2nd_round$Player1[i],simulation_results$name)] = current_round
-    simulation_results$results[match(french_open_data_2nd_round$Player2[i],simulation_results$name)] = current_round
+    simulation_results$results[match(french_open_data_Final_round$Player1[i],simulation_results$name)] = current_round
+    simulation_results$results[match(french_open_data_Final_round$Player2[i],simulation_results$name)] = current_round
   }
   french_open_data_Final_round = french_open_data_Final_round[1,]
+  french_open_data_Final_round = shuffle_matches(french_open_data_Final_round,p1_column_names,p2_column_names)
   tournament_Final_round = as.data.frame(french_open_data_Final_round %>%
                                            select(P1Pts,P2Pts, 
                                                   Player1Srv1Wp,Player1GamesWp,Player1MatchesWp,Player1SetWp,
@@ -1017,6 +1012,29 @@ simulate_tournament = function(french_open_data,final_model,setboost,p1_column_n
   }
   simulation_results$results[match(winner,simulation_results$name)] = "winner"
   return (simulation_results)
+}
+
+shuffle_matches = function(french_open_simulation,p1_column_names,p2_column_names) {
+  shuffle_simulation = french_open_simulation
+  temp_storage = shuffle_simulation[1,]
+  for (i in 1:nrow(shuffle_simulation)) {
+    shuffle = runif(1) > 0.5
+    if (shuffle) {
+      # Copy player 1 into temp_storage (p1 columns)
+      for (j in 1:length(p1_column_names)) {
+        temp_storage[1,p1_column_names[j]] = shuffle_simulation[i,p1_column_names[j]]
+      }
+      # Copy player 2 into player 1
+      for (j in 1:length(p1_column_names)) {
+        shuffle_simulation[i,p1_column_names[j]] = shuffle_simulation[i,p2_column_names[j]]
+      }
+      # Copy player 1 into player 2 (from temp_storage)
+      for (j in 1:length(p1_column_names)) {
+        shuffle_simulation[i,p2_column_names[j]] = temp_storage[1,p1_column_names[j]]
+      }
+    }
+  }
+  return (shuffle_simulation)
 }
 
 
